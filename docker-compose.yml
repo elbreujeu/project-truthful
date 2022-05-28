@@ -1,0 +1,43 @@
+version: '3.1'
+
+services:
+  db:
+    container_name: pt_db
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql/:/docker-entrypoint-initdb.d
+  
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 5050:8080
+    depends_on:
+      - "db"
+
+  server:
+    container_name: server
+    build:
+      context: ./server/
+      dockerfile: Dockerfile
+    environment:
+      PORT: 8080
+      DBUSER: root
+      DBPASS: example
+      DBADRESS: pt_db:3306
+      DBNAME: project_truthful
+    ports:
+      - 8080:8080
+    depends_on:
+      - "db"
+    restart: always
+
+volumes:
+  mysql-data:
