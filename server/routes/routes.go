@@ -12,5 +12,5 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 }
 
 func SetupRoutes(r *mux.Router) {
-	r.HandleFunc("/", homePage).Methods("GET")
+	r.HandleFunc("/hello_world", homePage).Methods("GET")
 }
