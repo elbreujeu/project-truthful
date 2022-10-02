@@ -10,21 +10,11 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 )
 
 const DEFAULT_PORT = "8080"
 
 func main() {
-	err := godotenv.Overload("../.env")
-	if err != nil {
-		log.Fatal("Error overloading .env file")
-	}
-	err = godotenv.Load()
-
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
 		log.Printf("PORT not found in env, using default port %s\n", DEFAULT_PORT)
@@ -34,7 +24,8 @@ func main() {
 	routes.SetMiddleware(router)
 	routes.SetupRoutes(router)
 
-	err = database.Init()
+	var err error
+	database.DB, err = database.Init()
 	if err != nil {
 		log.Fatal(err)
 	}

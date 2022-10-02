@@ -12,5 +12,6 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/testify v1.7.5 // indirect
+	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

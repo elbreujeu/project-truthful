@@ -1,6 +1,8 @@
 package client
 
-import "os"
+import (
+	"os"
+)
 
 func GetServerVersion() string {
 	return os.Getenv("SERVER_VERSION")

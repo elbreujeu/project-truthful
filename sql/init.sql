@@ -1,4 +1,4 @@
--- Adminer 4.8.1 MySQL 8.0.28 dump
+-- Adminer 4.8.1 MySQL 8.0.30 dump
 
 SET NAMES utf8;
 SET time_zone = '+00:00';
@@ -6,9 +6,6 @@ SET foreign_key_checks = 0;
 SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
 
 SET NAMES utf8mb4;
-
-CREATE DATABASE `project_truthful` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
-USE `project_truthful`;
 
 DROP TABLE IF EXISTS `answer`;
 CREATE TABLE `answer` (
@@ -50,11 +47,13 @@ DROP TABLE IF EXISTS `user`;
 CREATE TABLE `user` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `username` varchar(30) NOT NULL,
+  `email` varchar(319) NOT NULL,
   `display_name` varchar(30) NOT NULL,
-  `password` char(32) NOT NULL,
+  `password` char(60) NOT NULL,
   `birthdate` date NOT NULL,
+  `creation_date` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 
--- 2022-05-28 20:32:56
+-- 2022-10-02 16:12:21
