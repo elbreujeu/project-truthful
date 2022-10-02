@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"net/mail"
+	"os"
 	"project_truthful/client/database"
 	"project_truthful/models"
 	"time"
@@ -13,6 +14,9 @@ import (
 )
 
 func encryptPassword(password string) (string, error) {
+	if os.Getenv("IS_TEST") == "true" {
+		return password, nil
+	}
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
 		return "", err
@@ -24,7 +28,7 @@ func isUsernameValid(username string) error {
 	if len(username) < 3 || len(username) > 20 {
 		return errors.New("username must be between 3 and 20 characters")
 	}
-	if database.CheckUsernameExists(username) {
+	if database.CheckUsernameExists(username, database.DB) {
 		return errors.New("username already exists")
 	}
 	return nil
@@ -60,7 +64,7 @@ func isEmailValid(email string) error {
 	if err != nil {
 		return err
 	}
-	if database.CheckEmailExists(email) {
+	if database.CheckEmailExists(email, database.DB) {
 		return errors.New("email already exists")
 	}
 	return nil
@@ -107,10 +111,10 @@ func CreateUser(infos models.CreateUserInfos) (int64, int, error) {
 		return 0, http.StatusInternalServerError, err
 	}
 
-	id, err := database.InsertUser(infos.Username, encryptedPassword, infos.Email, infos.Birthdate)
+	id, err := database.InsertUser(infos.Username, encryptedPassword, infos.Email, infos.Birthdate, database.DB)
 	if err != nil {
 		return 0, http.StatusInternalServerError, err
 	}
 	log.Printf("User %s created with id %d\n", infos.Username, id)
-	return id, http.StatusOK, nil
+	return id, http.StatusCreated, nil
 }

@@ -39,8 +39,8 @@ func Init() (*sql.DB, error) {
 	return db, nil
 }
 
-func InsertUser(username string, password string, email string, birthdate string) (int64, error) {
-	result, err := DB.Exec("INSERT INTO user (username, display_name, password, email, birthdate) VALUES (?, ?, ?, ?, ?)", username, username, password, email, birthdate)
+func InsertUser(username string, password string, email string, birthdate string, db *sql.DB) (int64, error) {
+	result, err := db.Exec("INSERT INTO user (username, display_name, password, email, birthdate) VALUES (?, ?, ?, ?, ?)", username, username, password, email, birthdate)
 	if err != nil {
 		log.Printf("Error inserting user %s, %v\n", username, err)
 		return 0, err
@@ -48,9 +48,9 @@ func InsertUser(username string, password string, email string, birthdate string
 	return result.LastInsertId()
 }
 
-func CheckUsernameExists(username string) bool {
+func CheckUsernameExists(username string, db *sql.DB) bool {
 	var count int
-	err := DB.QueryRow("SELECT COUNT(*) FROM user WHERE username = ?", username).Scan(&count)
+	err := db.QueryRow("SELECT COUNT(*) FROM user WHERE username = ?", username).Scan(&count)
 	if err != nil {
 		log.Printf("Error checking if username %s exists, %v\n", username, err)
 		return false
@@ -58,9 +58,9 @@ func CheckUsernameExists(username string) bool {
 	return count > 0
 }
 
-func CheckEmailExists(email string) bool {
+func CheckEmailExists(email string, db *sql.DB) bool {
 	var count int
-	err := DB.QueryRow("SELECT COUNT(*) FROM user WHERE email = ?", email).Scan(&count)
+	err := db.QueryRow("SELECT COUNT(*) FROM user WHERE email = ?", email).Scan(&count)
 	if err != nil {
 		log.Printf("Error checking if email %s exists, %v\n", email, err)
 		return false
