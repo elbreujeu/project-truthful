@@ -15,7 +15,7 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `{"message": "Hello world !"}`)
 }
 
-func createUser(w http.ResponseWriter, r *http.Request) {
+func register(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Received request to create user from ip %s\n", r.RemoteAddr)
 	// parses the request body and returns a models.CreateUserInfos struct
 	// if the request body is not valid, returns an error
@@ -49,5 +49,5 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 
 func SetupRoutes(r *mux.Router) {
 	r.HandleFunc("/hello_world", homePage).Methods("GET")
-	r.HandleFunc("/create_user", createUser).Methods("POST")
+	r.HandleFunc("/authentification/register", register).Methods("POST")
 }
