@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"project_truthful/client/database"
+	"project_truthful/client/token"
 	"project_truthful/routes"
 	"time"
 
@@ -26,6 +27,10 @@ func main() {
 
 	var err error
 	database.DB, err = database.Init()
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = token.Init()
 	if err != nil {
 		log.Fatal(err)
 	}

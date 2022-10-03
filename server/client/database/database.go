@@ -58,6 +58,29 @@ func CheckUsernameExists(username string, db *sql.DB) bool {
 	return count > 0
 }
 
+func GetUserId(username string, db *sql.DB) (int, error) {
+	var id int
+	err := db.QueryRow("SELECT id FROM user WHERE username = ?", username).Scan(&id)
+	if err != nil && err != sql.ErrNoRows {
+		log.Printf("Error getting user id for username %s, %v\n", username, err)
+		return 0, err
+	}
+	if err == sql.ErrNoRows {
+		return 0, nil
+	}
+	return id, nil
+}
+
+func GetHashedPassword(username string, db *sql.DB) (string, error) {
+	var password string
+	err := db.QueryRow("SELECT password FROM user WHERE username = ?", username).Scan(&password)
+	if err != nil {
+		log.Printf("Error getting hashed password for username %s, %v\n", username, err)
+		return "", err
+	}
+	return password, nil
+}
+
 func CheckEmailExists(email string, db *sql.DB) bool {
 	var count int
 	err := db.QueryRow("SELECT COUNT(*) FROM user WHERE email = ?", email).Scan(&count)
