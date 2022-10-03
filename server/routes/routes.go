@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"project_truthful/client"
+	"project_truthful/client/token"
 	"project_truthful/models"
 
 	"github.com/gorilla/mux"
@@ -77,8 +78,40 @@ func login(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `{"message": "User logged in", "token": "%s"}`, token)
 }
 
+func refreshToken(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Received request to refreshed token from ip %s\n", r.RemoteAddr)
+
+	accessToken := r.Header.Get("Authorization")
+	if accessToken == "" {
+		log.Printf("Error while parsing request body: missing fields\n")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "missing fields"}`)
+		return
+	}
+
+	if len(accessToken) < 7 || accessToken[:7] != "Bearer " {
+		log.Printf("Error while parsing request body: missing fields\n")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "missing fields"}`)
+		return
+	}
+	accessToken = accessToken[7:]
+
+	newToken, code, err := token.RefreshJWT(accessToken)
+	if err != nil {
+		log.Printf("Error while checking token: %s\n", err.Error())
+		w.WriteHeader(code)
+		fmt.Fprintf(w, `{"message": "error while checking token", "error": "%s"}`, err.Error())
+		return
+	}
+	log.Printf("Token refresheded")
+	w.WriteHeader(code)
+	fmt.Fprintf(w, `{"message": "Token refresheded", "token": "%s"}`, newToken)
+}
+
 func SetupRoutes(r *mux.Router) {
 	r.HandleFunc("/hello_world", homePage).Methods("GET")
 	r.HandleFunc("/register", register).Methods("POST")
 	r.HandleFunc("/login", login).Methods("POST")
+	r.HandleFunc("/refresh_token", refreshToken).Methods("GET")
 }
