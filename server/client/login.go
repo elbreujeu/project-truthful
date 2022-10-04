@@ -1,6 +1,7 @@
 package client
 
 import (
+	"database/sql"
 	"errors"
 	"net/http"
 	"project_truthful/client/database"
@@ -12,13 +13,15 @@ import (
 
 func Login(infos models.LoginInfos) (string, int, error) {
 	id, err := database.GetUserId(infos.Username, database.DB)
-	if err != nil {
+	if err != nil && err == sql.ErrNoRows {
+		return "", http.StatusNotFound, errors.New("user not found")
+	} else if err != nil {
 		return "", http.StatusInternalServerError, err
 	}
 	if id == 0 {
 		return "", http.StatusBadRequest, errors.New("username does not exist")
 	}
-	hashedPassword, err := database.GetHashedPassword(infos.Username, database.DB)
+	hashedPassword, err := database.GetHashedPassword(id, database.DB)
 	if err != nil {
 		return "", http.StatusInternalServerError, err
 	}
