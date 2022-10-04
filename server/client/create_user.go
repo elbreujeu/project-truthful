@@ -28,7 +28,10 @@ func isUsernameValid(username string) error {
 	if len(username) < 3 || len(username) > 20 {
 		return errors.New("username must be between 3 and 20 characters")
 	}
-	if database.CheckUsernameExists(username, database.DB) {
+	usernameExists, err := database.CheckUsernameExists(username, database.DB)
+	if err != nil {
+		return err
+	} else if usernameExists {
 		return errors.New("username already exists")
 	}
 	return nil
@@ -64,7 +67,10 @@ func isEmailValid(email string) error {
 	if err != nil {
 		return err
 	}
-	if database.CheckEmailExists(email, database.DB) {
+	emailExists, err := database.CheckEmailExists(email, database.DB)
+	if err != nil {
+		return err
+	} else if emailExists {
 		return errors.New("email already exists")
 	}
 	return nil

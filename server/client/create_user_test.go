@@ -211,4 +211,5 @@ func TestCreateUserValid(t *testing.T) {
 	if id != 4 {
 		t.Errorf("Error: id is %d instead of %d", id, 4)
 	}
+	os.Setenv("IS_TEST", "false")
 }
