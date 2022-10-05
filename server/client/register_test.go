@@ -117,16 +117,16 @@ func TestIsBirthdateValid(t *testing.T) {
 	}
 }
 
-func TestCreateUserInvalidUsername(t *testing.T) {
-	userInfos := models.CreateUserInfos{Username: "us", Password: "password", Email: "email@email.fr", Birthdate: "2000-01-01"}
+func TestRegisterInvalidUsername(t *testing.T) {
+	userInfos := models.RegisterInfos{Username: "us", Password: "password", Email: "email@email.fr", Birthdate: "2000-01-01"}
 
-	_, _, err := CreateUser(userInfos)
+	_, _, err := Register(userInfos)
 	if err == nil {
 		t.Errorf("No error while creating user with invalid username")
 	}
 }
 
-func TestCreateUserInvalidPassword(t *testing.T) {
+func TestRegisterInvalidPassword(t *testing.T) {
 	var mock sqlmock.Sqlmock
 	var err error
 	database.DB, mock, err = sqlmock.New()
@@ -137,15 +137,15 @@ func TestCreateUserInvalidPassword(t *testing.T) {
 
 	mock.ExpectQuery("SELECT COUNT").WithArgs("username").WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
 
-	userInfos := models.CreateUserInfos{Username: "username", Password: "pass", Email: "email@email.fr", Birthdate: "2000-01-01"}
+	userInfos := models.RegisterInfos{Username: "username", Password: "pass", Email: "email@email.fr", Birthdate: "2000-01-01"}
 
-	_, _, err = CreateUser(userInfos)
+	_, _, err = Register(userInfos)
 	if err == nil {
 		t.Errorf("No error while creating user with invalid password")
 	}
 }
 
-func TestCreateUserInvalidEmail(t *testing.T) {
+func TestRegisterInvalidEmail(t *testing.T) {
 	var mock sqlmock.Sqlmock
 	var err error
 	database.DB, mock, err = sqlmock.New()
@@ -156,15 +156,15 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 
 	mock.ExpectQuery("SELECT COUNT").WithArgs("username").WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
 
-	userInfos := models.CreateUserInfos{Username: "username", Password: "Password123@", Email: "email", Birthdate: "2000-01-01"}
+	userInfos := models.RegisterInfos{Username: "username", Password: "Password123@", Email: "email", Birthdate: "2000-01-01"}
 
-	_, _, err = CreateUser(userInfos)
+	_, _, err = Register(userInfos)
 	if err == nil {
 		t.Errorf("No error while creating user with invalid email")
 	}
 }
 
-func TestCreateUserInvalidBirthdate(t *testing.T) {
+func TestRegisterInvalidBirthdate(t *testing.T) {
 	var mock sqlmock.Sqlmock
 	var err error
 	database.DB, mock, err = sqlmock.New()
@@ -176,15 +176,15 @@ func TestCreateUserInvalidBirthdate(t *testing.T) {
 	mock.ExpectQuery("SELECT COUNT").WithArgs("username").WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
 	mock.ExpectQuery("SELECT COUNT").WithArgs("email@email.fr").WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
 
-	userInfos := models.CreateUserInfos{Username: "username", Password: "Password123@", Email: "email@email.fr", Birthdate: "2025-01-01"}
+	userInfos := models.RegisterInfos{Username: "username", Password: "Password123@", Email: "email@email.fr", Birthdate: "2025-01-01"}
 
-	_, _, err = CreateUser(userInfos)
+	_, _, err = Register(userInfos)
 	if err == nil {
 		t.Errorf("No error received while creating user with invalid birthdate")
 	}
 }
 
-func TestCreateUserValid(t *testing.T) {
+func TestRegisterValid(t *testing.T) {
 	var mock sqlmock.Sqlmock
 	var err error
 	database.DB, mock, err = sqlmock.New()
@@ -199,9 +199,9 @@ func TestCreateUserValid(t *testing.T) {
 	mock.ExpectQuery("SELECT COUNT").WithArgs("email@email.fr").WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
 	mock.ExpectExec("INSERT INTO user").WithArgs("username", "username", "Password123@", "email@email.fr", "2000-01-01").WillReturnResult(sqlmock.NewResult(4, 1))
 
-	userInfos := models.CreateUserInfos{Username: "username", Password: "Password123@", Email: "email@email.fr", Birthdate: "2000-01-01"}
+	userInfos := models.RegisterInfos{Username: "username", Password: "Password123@", Email: "email@email.fr", Birthdate: "2000-01-01"}
 
-	id, returnStatus, err := CreateUser(userInfos)
+	id, returnStatus, err := Register(userInfos)
 	if err != nil {
 		t.Errorf("Error while creating user: %s", err.Error())
 	}

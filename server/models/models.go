@@ -1,6 +1,6 @@
 package models
 
-type CreateUserInfos struct {
+type RegisterInfos struct {
 	Username  string `json:"username"`
 	Password  string `json:"password"`
 	Email     string `json:"email_address"`

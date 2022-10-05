@@ -19,7 +19,7 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 func register(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Received request to create user from ip %s\n", r.RemoteAddr)
 
-	var infos models.CreateUserInfos
+	var infos models.RegisterInfos
 	err := json.NewDecoder(r.Body).Decode(&infos)
 	if err != nil {
 		log.Printf("Error while parsing request body: %s\n", err.Error())
@@ -35,7 +35,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, code, err := client.CreateUser(infos)
+	id, code, err := client.Register(infos)
 	if err != nil {
 		log.Printf("Error while creating user: %s\n", err.Error())
 		w.WriteHeader(code)
