@@ -83,3 +83,11 @@ func RefreshJWT(tokenString string) (string, int, error) {
 	}
 	return newToken, http.StatusOK, nil
 }
+
+func ParseAccessToken(r *http.Request) (string, int, error) {
+	accessToken := r.Header.Get("Authorization")
+	if accessToken == "" || len(accessToken) < 7 || accessToken[:7] != "Bearer " {
+		return "", http.StatusBadRequest, errors.New("missing fields")
+	}
+	return accessToken[7:], http.StatusOK, nil
+}

@@ -11,3 +11,32 @@ type LoginInfos struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
+
+type UserPreviewInfos struct {
+	Id          int    `json:"id"`
+	Username    string `json:"username"`
+	DisplayName string `json:"display_name"`
+}
+
+type Answer struct {
+	Author       UserPreviewInfos `json:"author"`
+	QuestionText string           `json:"question_text"`
+	AnswerText   string           `json:"answer_text"`
+	AnswerDate   string           `json:"answer_date"`
+	LikeCount    int              `json:"like_count"`
+}
+
+type UserProfileInfos struct {
+	Id             int      `json:"id"`
+	Username       string   `json:"username"`
+	DisplayName    string   `json:"display_name"`
+	FollowerCount  int      `json:"follower_count"`
+	FollowingCount int      `json:"following_count"`
+	AnswerCount    int      `json:"answer_count"`
+	Answers        []Answer `json:"answers"`
+}
+
+type FollowUserInfos struct {
+	Follow bool `json:"follow"`
+	UserId int  `json:"user_id"`
+}

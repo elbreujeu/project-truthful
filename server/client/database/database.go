@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"project_truthful/models"
 
 	"github.com/go-sql-driver/mysql"
 )
@@ -54,6 +55,16 @@ func CheckUsernameExists(username string, db *sql.DB) (bool, error) {
 	return count > 0, nil
 }
 
+func CheckUserExists(id int, db *sql.DB) (bool, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM user WHERE id = ?", id).Scan(&count)
+	if err != nil {
+		log.Printf("Error checking if user %d exists, %v\n", id, err)
+		return false, err
+	}
+	return count > 0, nil
+}
+
 func GetUserId(username string, db *sql.DB) (int, error) {
 	var id int
 	err := db.QueryRow("SELECT id FROM user WHERE username = ?", username).Scan(&id)
@@ -85,4 +96,76 @@ func CheckEmailExists(email string, db *sql.DB) (bool, error) {
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func getAnswers(id int, start int, end int, db *sql.DB) ([]models.Answer, error) {
+	//TODO
+	return nil, nil
+}
+
+func GetUserProfileInfos(id int, db *sql.DB) (models.UserProfileInfos, error) {
+	var username string
+	var displayName string
+	err := db.QueryRow("SELECT username, display_name FROM user WHERE id = ?", id).Scan(&username, &displayName)
+	if err != nil {
+		log.Printf("Error getting user profile infos for id %d, %v\n", id, err)
+		return models.UserProfileInfos{}, err
+	}
+
+	var followerCount int
+	err = db.QueryRow("SELECT COUNT(*) FROM follow WHERE followed = ?", id).Scan(&followerCount)
+	if err != nil {
+		log.Printf("Error getting followers count for id %d, %v\n", id, err)
+		return models.UserProfileInfos{}, err
+	}
+
+	var followingCount int
+	err = db.QueryRow("SELECT COUNT(*) FROM follow WHERE follower = ?", id).Scan(&followingCount)
+	if err != nil {
+		log.Printf("Error getting following count for id %d, %v\n", id, err)
+		return models.UserProfileInfos{}, err
+	}
+
+	var answerCount int
+	err = db.QueryRow("SELECT COUNT(*) FROM answer WHERE user_id = ?", id).Scan(&answerCount)
+	if err != nil {
+		log.Printf("Error getting answer count for id %d, %v\n", id, err)
+		return models.UserProfileInfos{}, err
+	}
+
+	answers, err := getAnswers(id, 0, 10, db)
+	if err != nil {
+		log.Printf("Error getting answers for id %d, %v\n", id, err)
+		return models.UserProfileInfos{}, err
+	}
+
+	return models.UserProfileInfos{Id: id, Username: username, DisplayName: displayName, FollowerCount: followerCount, FollowingCount: followingCount, AnswerCount: answerCount, Answers: answers}, nil
+}
+
+func CheckFollowExists(follower int, followed int, db *sql.DB) (bool, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM follow WHERE follower = ? AND followed = ?", follower, followed).Scan(&count)
+	if err != nil {
+		log.Printf("Error checking if follow exists for follower %d and followed %d, %v\n", follower, followed, err)
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func AddFollow(followerId int, followedId int, db *sql.DB) error {
+	_, err := db.Exec("INSERT INTO follow (follower, followed) VALUES (?, ?)", followerId, followedId)
+	if err != nil {
+		log.Printf("Error inserting follow for follower %d and followed %d, %v\n", followerId, followedId, err)
+		return err
+	}
+	return nil
+}
+
+func RemoveFollow(followerId int, followedId int, db *sql.DB) error {
+	_, err := db.Exec("DELETE FROM follow WHERE follower = ? AND followed = ?", followerId, followedId)
+	if err != nil {
+		log.Printf("Error deleting follow for follower %d and followed %d, %v\n", followerId, followedId, err)
+		return err
+	}
+	return nil
 }
