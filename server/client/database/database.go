@@ -55,7 +55,7 @@ func CheckUsernameExists(username string, db *sql.DB) (bool, error) {
 	return count > 0, nil
 }
 
-func CheckUserExists(id int, db *sql.DB) (bool, error) {
+func CheckUserIdExists(id int, db *sql.DB) (bool, error) {
 	var count int
 	err := db.QueryRow("SELECT COUNT(*) FROM user WHERE id = ?", id).Scan(&count)
 	if err != nil {

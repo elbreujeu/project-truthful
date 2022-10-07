@@ -11,7 +11,7 @@ func FollowUser(followerId int, followeeId int) (int, error) {
 		return http.StatusBadRequest, errors.New("user can't follow himself")
 	}
 
-	followeeExists, err := database.CheckUserExists(followeeId, database.DB)
+	followeeExists, err := database.CheckUserIdExists(followeeId, database.DB)
 
 	if err != nil {
 		return http.StatusInternalServerError, err
@@ -20,7 +20,7 @@ func FollowUser(followerId int, followeeId int) (int, error) {
 		return http.StatusNotFound, errors.New("followee not found")
 	}
 
-	followerExists, err := database.CheckUserExists(followerId, database.DB)
+	followerExists, err := database.CheckUserIdExists(followerId, database.DB)
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}
