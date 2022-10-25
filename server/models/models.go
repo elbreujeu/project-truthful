@@ -37,6 +37,11 @@ type UserProfileInfos struct {
 }
 
 type FollowUserInfos struct {
-	Follow bool `json:"follow"`
 	UserId int  `json:"user_id"`
+	Follow bool `json:"follow"`
+}
+
+type AskQuestionInfos struct {
+	UserId       int    `json:"user_id"`
+	QuestionText string `json:"question_text"`
 }

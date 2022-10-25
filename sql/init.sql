@@ -26,7 +26,7 @@ DROP TABLE IF EXISTS `question`;
 CREATE TABLE `question` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `receiver_id` int unsigned NOT NULL,
-  `author_id` int unsigned NOT NULL,
+  `author_id` int unsigned NULL,
   `author_ip_address` varchar(45) NOT NULL,
   `text` varchar(500) NOT NULL,
   PRIMARY KEY (`id`),
