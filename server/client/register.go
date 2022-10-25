@@ -92,7 +92,7 @@ func isBirthdateValid(birthdateStr string) error {
 	return nil
 }
 
-func CreateUser(infos models.CreateUserInfos) (int64, int, error) {
+func Register(infos models.RegisterInfos) (int64, int, error) {
 	log.Printf("Creating user %s\n", infos.Username)
 
 	err := isUsernameValid(infos.Username)
