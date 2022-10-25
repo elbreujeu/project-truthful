@@ -313,3 +313,44 @@ func TestRemoveFollow(t *testing.T) {
 		t.Errorf("Error should not be nil")
 	}
 }
+
+func TestAddQuestion(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating sqlmock: %s", err.Error())
+	}
+	defer db.Close()
+
+	mock.ExpectExec("INSERT INTO question").WithArgs("question", "ip address", 1).WillReturnResult(sqlmock.NewResult(1, 1))
+	id, err := AddQuestion("question", 0, "ip address", 1, db)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err != nil {
+		t.Errorf("Error while adding question: %s", err.Error())
+	}
+	if id != 1 {
+		t.Errorf("Id should be 1")
+	}
+
+	mock.ExpectExec("INSERT INTO question").WithArgs("question", 2, "ip address", 1).WillReturnResult(sqlmock.NewResult(1, 1))
+	id, err = AddQuestion("question", 2, "ip address", 1, db)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err != nil {
+		t.Errorf("Error while adding question: %s", err.Error())
+	}
+	if id != 1 {
+		t.Errorf("Id should be 1")
+	}
+
+	mock.ExpectExec("INSERT INTO question").WithArgs("question", 3, "ip address", 1).WillReturnError(errors.New("error"))
+	_, err = AddQuestion("question", 3, "ip address", 1, db)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err == nil {
+		t.Errorf("Error should not be nil")
+	}
+}

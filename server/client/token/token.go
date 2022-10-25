@@ -22,7 +22,7 @@ func Init() error {
 	}
 	jwtPublicKey, err = jwt.ParseRSAPublicKeyFromPEM([]byte(pubKey))
 	if err != nil {
-		log.Printf("Unable to parse ECDSA public key: %v", err)
+		log.Printf("Unable to parse RSA public key: %v", err)
 		return err
 	}
 
@@ -32,7 +32,7 @@ func Init() error {
 	}
 	jwtPrivateKey, err = jwt.ParseRSAPrivateKeyFromPEM([]byte(prvKey))
 	if err != nil {
-		log.Printf("Unable to parse ECDSA private key: %v", err)
+		log.Printf("Unable to parse RSA private key: %v", err)
 		return err
 	}
 	return nil
