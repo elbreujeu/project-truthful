@@ -28,6 +28,7 @@ CREATE TABLE `question` (
   `receiver_id` int unsigned NOT NULL,
   `author_id` int unsigned NULL,
   `author_ip_address` varchar(45) NOT NULL,
+  `is_author_anonymous` tinyint(1) NOT NULL DEFAULT '1',
   `text` varchar(500) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `author_id` (`author_id`),

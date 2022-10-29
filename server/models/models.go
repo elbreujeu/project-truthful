@@ -18,6 +18,12 @@ type UserPreviewInfos struct {
 	DisplayName string `json:"display_name"`
 }
 
+type Question struct {
+	Id     int    `json:"id"`
+	Author string `json:"author"`
+	Text   string `json:"text"`
+}
+
 type Answer struct {
 	Author       UserPreviewInfos `json:"author"`
 	QuestionText string           `json:"question_text"`
@@ -42,6 +48,7 @@ type FollowUserInfos struct {
 }
 
 type AskQuestionInfos struct {
-	UserId       int    `json:"user_id"`
-	QuestionText string `json:"question_text"`
+	UserId            int    `json:"user_id"`
+	QuestionText      string `json:"question_text"`
+	IsAuthorAnonymous bool   `json:"is_author_anonymous"`
 }

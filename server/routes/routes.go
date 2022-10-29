@@ -191,7 +191,7 @@ func askQuestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, code, err := client.AskQuestion(infos.QuestionText, requesterId, r.RemoteAddr, infos.UserId)
+	id, code, err := client.AskQuestion(infos.QuestionText, requesterId, r.RemoteAddr, infos.IsAuthorAnonymous, infos.UserId)
 	if err != nil {
 		log.Printf("Error while asking question: %s\n", err.Error())
 		w.WriteHeader(code)

@@ -170,14 +170,14 @@ func RemoveFollow(followerId int, followedId int, db *sql.DB) error {
 	return nil
 }
 
-func AddQuestion(question string, authorId int, authorIpAddress string, receiverId int, db *sql.DB) (int64, error) {
+func AddQuestion(question string, authorId int, authorIpAddress string, isAuthorAnonymous bool, receiverId int, db *sql.DB) (int64, error) {
 	var result sql.Result
 	var err error
 
 	if authorId == 0 {
 		result, err = db.Exec("INSERT INTO question (text, author_ip_address, receiver_id) VALUES (?, ?, ?)", question, authorIpAddress, receiverId)
 	} else {
-		result, err = db.Exec("INSERT INTO question (text, author_id, author_ip_address, receiver_id) VALUES (?, ?, ?, ?)", question, authorId, authorIpAddress, receiverId)
+		result, err = db.Exec("INSERT INTO question (text, author_id, author_ip_address, is_author_anonymous, receiver_id) VALUES (?, ?, ?, ?, ?)", question, authorId, authorIpAddress, isAuthorAnonymous, receiverId)
 	}
 	if err != nil {
 		log.Printf("Error inserting question for author %d and receiver %d, %v\n", authorId, receiverId, err)

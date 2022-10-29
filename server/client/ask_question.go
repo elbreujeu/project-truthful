@@ -16,7 +16,7 @@ func checkQuestionInfos(question string) error {
 	return nil
 }
 
-func AskQuestion(question string, authorId int, authorIpAddress string, receiverId int) (int64, int, error) {
+func AskQuestion(question string, authorId int, authorIpAddress string, isAuthorAnonymous bool, receiverId int) (int64, int, error) {
 	receiverExists, err := database.CheckUserIdExists(receiverId, database.DB)
 	if err != nil {
 		return 0, http.StatusInternalServerError, err
@@ -30,7 +30,7 @@ func AskQuestion(question string, authorId int, authorIpAddress string, receiver
 		return 0, http.StatusBadRequest, err
 	}
 
-	id, err := database.AddQuestion(question, authorId, authorIpAddress, receiverId, database.DB)
+	id, err := database.AddQuestion(question, authorId, authorIpAddress, isAuthorAnonymous, receiverId, database.DB)
 	if err != nil {
 		return 0, http.StatusInternalServerError, err
 	}
