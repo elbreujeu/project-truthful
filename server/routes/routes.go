@@ -208,7 +208,6 @@ func askQuestion(w http.ResponseWriter, r *http.Request) {
 
 func getQuestions(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Received request to get questions from ip %s\n", r.RemoteAddr)
-	log.Println("Toto") //debug
 
 	//get the "count" parameter from query parameters
 	countStr := r.URL.Query().Get("count")
@@ -234,9 +233,6 @@ func getQuestions(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	log.Println("User id: ", userId) //debug
-
-	log.Println("Toto") //debug
 	questions, code, err := client.GetQuestions(userId, start, count)
 	if err != nil {
 		log.Printf("Error while getting questions: %s\n", err.Error())
