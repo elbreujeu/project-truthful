@@ -322,7 +322,7 @@ func TestAddQuestion(t *testing.T) {
 	defer db.Close()
 
 	mock.ExpectExec("INSERT INTO question").WithArgs("question", "ip address", 1).WillReturnResult(sqlmock.NewResult(1, 1))
-	id, err := AddQuestion("question", 0, "ip address", 1, db)
+	id, err := AddQuestion("question", 0, "ip address", true, 1, db)
 	if mock.ExpectationsWereMet() != nil {
 		t.Errorf("Error while checking expectations: %s", err.Error())
 	}
@@ -333,8 +333,8 @@ func TestAddQuestion(t *testing.T) {
 		t.Errorf("Id should be 1")
 	}
 
-	mock.ExpectExec("INSERT INTO question").WithArgs("question", 2, "ip address", 1).WillReturnResult(sqlmock.NewResult(1, 1))
-	id, err = AddQuestion("question", 2, "ip address", 1, db)
+	mock.ExpectExec("INSERT INTO question").WithArgs("question", 2, "ip address", true, 1).WillReturnResult(sqlmock.NewResult(1, 1))
+	id, err = AddQuestion("question", 2, "ip address", true, 1, db)
 	if mock.ExpectationsWereMet() != nil {
 		t.Errorf("Error while checking expectations: %s", err.Error())
 	}
@@ -345,8 +345,49 @@ func TestAddQuestion(t *testing.T) {
 		t.Errorf("Id should be 1")
 	}
 
-	mock.ExpectExec("INSERT INTO question").WithArgs("question", 3, "ip address", 1).WillReturnError(errors.New("error"))
-	_, err = AddQuestion("question", 3, "ip address", 1, db)
+	mock.ExpectExec("INSERT INTO question").WithArgs("question", 3, "ip address", false, 1).WillReturnError(errors.New("error"))
+	_, err = AddQuestion("question", 3, "ip address", false, 1, db)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err == nil {
+		t.Errorf("Error should not be nil")
+	}
+}
+
+func TestHasQuestionBeenAnswered(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating sqlmock: %s", err.Error())
+	}
+	defer db.Close()
+
+	mock.ExpectQuery("SELECT COUNT").WithArgs(2).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+	exists, err := HasQuestionBeenAnswered(2, db)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err != nil {
+		t.Errorf("Error while checking if question has been answered: %s", err.Error())
+	}
+	if !exists {
+		t.Errorf("Question should have been answered")
+	}
+
+	mock.ExpectQuery("SELECT COUNT").WithArgs(3).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+	exists, err = HasQuestionBeenAnswered(3, db)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err != nil {
+		t.Errorf("Error while checking if question has been answered: %s", err.Error())
+	}
+	if exists {
+		t.Errorf("Question should not have been answered")
+	}
+
+	mock.ExpectQuery("SELECT COUNT").WithArgs(4).WillReturnError(errors.New("error"))
+	_, err = HasQuestionBeenAnswered(4, db)
 	if mock.ExpectationsWereMet() != nil {
 		t.Errorf("Error while checking expectations: %s", err.Error())
 	}
