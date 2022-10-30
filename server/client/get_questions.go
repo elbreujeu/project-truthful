@@ -8,8 +8,11 @@ import (
 )
 
 func GetQuestions(userId int, start int, count int) ([]models.Question, int, error) {
-	if count > 30 {
+	if count < 0 || count > 30 {
 		count = 30
+	}
+	if start < 0 {
+		start = 0
 	}
 	exists, err := database.CheckUserIdExists(userId, database.DB)
 	if err != nil {
