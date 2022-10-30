@@ -234,9 +234,5 @@ func GetQuestions(userId int, start int, end int, db *sql.DB) ([]models.Question
 			questions = append(questions, curQuestion)
 		}
 	}
-	//reverses the order of the questions
-	for i, j := 0, len(questions)-1; i < j; i, j = i+1, j-1 {
-		questions[i], questions[j] = questions[j], questions[i]
-	}
 	return questions, nil
 }
