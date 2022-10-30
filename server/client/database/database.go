@@ -191,3 +191,37 @@ func AddQuestion(question string, authorId int, authorIpAddress string, isAuthor
 	}
 	return id, nil
 }
+
+func GetQuestions(userId int, start int, end int, db *sql.DB) ([]models.Question, error) {
+	//selects all questions in database where receiver_id = userId
+	log.Printf("Getting questions for user %d, %d, %d\n", userId, start, end) // debug
+	rows, err := db.Query("SELECT id, text, author_id, is_author_anonymous, receiver_id, creation_date FROM question WHERE receiver_id = ? ORDER BY creation_date DESC LIMIT ?, ?", userId, start, end)
+	if err != nil {
+		log.Printf("Error getting questions for user %d, %v\n", userId, err)
+		return nil, err
+	}
+	defer rows.Close()
+	// prints all the rows with their id and text
+	var questions []models.Question
+	for rows.Next() {
+		var curQuestion models.Question
+		var authorId sql.NullInt64
+		err := rows.Scan(&curQuestion.Id, &curQuestion.Text, &authorId, &curQuestion.IsAuthorAnonymous, &curQuestion.ReceiverId, &curQuestion.CreatedAt)
+		if err != nil {
+			log.Printf("Error scanning question for user %d, %v\n", userId, err)
+			return nil, err
+		}
+		if authorId.Valid {
+			curQuestion.AuthorId = authorId.Int64
+		} else {
+			curQuestion.AuthorId = 0
+		}
+		log.Printf("Question %d, %s, %d, %t, %d, %s\n", curQuestion.Id, curQuestion.Text, curQuestion.AuthorId, curQuestion.IsAuthorAnonymous, curQuestion.ReceiverId, curQuestion.CreatedAt) // debug
+		questions = append(questions, curQuestion)
+	}
+	//reverses the order of the questions
+	for i, j := 0, len(questions)-1; i < j; i, j = i+1, j-1 {
+		questions[i], questions[j] = questions[j], questions[i]
+	}
+	return questions, nil
+}

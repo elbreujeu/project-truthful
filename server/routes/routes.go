@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"project_truthful/client"
+	"project_truthful/client/basicfuncs"
 	"project_truthful/client/token"
 	"project_truthful/models"
 
@@ -128,7 +129,7 @@ func getUserProfile(w http.ResponseWriter, r *http.Request) {
 func followUser(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Received request to follow user from ip %s\n", r.RemoteAddr)
 
-	requesterId, code, err := parseAndVerifyAccessToken(w, r)
+	requesterId, _, err := parseAndVerifyAccessToken(w, r)
 	if err != nil {
 		return
 	}
@@ -143,6 +144,7 @@ func followUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var message string
+	var code int
 	if infos.Follow {
 		code, err = client.FollowUser(requesterId, infos.UserId)
 		message = "User followed"
@@ -204,12 +206,62 @@ func askQuestion(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `{"message": "Question asked", "id": %d}`, id)
 }
 
+func getQuestions(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Received request to get questions from ip %s\n", r.RemoteAddr)
+	log.Println("Toto") //debug
+
+	//get the "count" parameter from query parameters
+	countStr := r.URL.Query().Get("count")
+	startStr := r.URL.Query().Get("start")
+
+	count, err := basicfuncs.ConvertQueryParameterToInt(countStr, 10)
+	if err != nil {
+		log.Printf("Error while parsing count: %s\n", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"message": "Invalid count", "error": "%s"}`, err.Error())
+		return
+	}
+
+	start, err := basicfuncs.ConvertQueryParameterToInt(startStr, 0)
+	if err != nil {
+		log.Printf("Error while parsing count: %s\n", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"message": "Invalid count", "error": "%s"}`, err.Error())
+		return
+	}
+
+	userId, _, err := parseAndVerifyAccessToken(w, r)
+	if err != nil {
+		return
+	}
+	log.Println("User id: ", userId) //debug
+
+	log.Println("Toto") //debug
+	questions, code, err := client.GetQuestions(userId, start, count)
+	if err != nil {
+		log.Printf("Error while getting questions: %s\n", err.Error())
+		w.WriteHeader(code)
+		fmt.Fprintf(w, `{"message": "error while getting questions", "error": "%s"}`, err.Error())
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(questions)
+	if err != nil {
+		log.Printf("Error while encoding questions: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, `{"message": "error while encoding questions", "error": "%s"}`, err.Error())
+		return
+	}
+}
+
 func SetupRoutes(r *mux.Router) {
 	r.HandleFunc("/hello_world", homePage).Methods("GET")
 	r.HandleFunc("/register", register).Methods("POST")
 	r.HandleFunc("/login", login).Methods("POST")
 	r.HandleFunc("/refresh_token", refreshToken).Methods("GET")
-	r.HandleFunc("/{user}", getUserProfile).Methods("GET")
+	r.HandleFunc("/get_user_profile/{user}", getUserProfile).Methods("GET")
 	r.HandleFunc("/follow_user", followUser).Methods("POST")
 	r.HandleFunc("/ask_question", askQuestion).Methods("POST")
+	r.HandleFunc("/get_questions", getQuestions).Methods("GET")
 }

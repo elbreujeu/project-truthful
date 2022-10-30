@@ -30,6 +30,7 @@ CREATE TABLE `question` (
   `author_ip_address` varchar(45) NOT NULL,
   `is_author_anonymous` tinyint(1) NOT NULL DEFAULT '1',
   `text` varchar(500) NOT NULL,
+  `creation_date` timestamp DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `author_id` (`author_id`),
   CONSTRAINT `question_ibfk_1` FOREIGN KEY (`author_id`) REFERENCES `user` (`id`),

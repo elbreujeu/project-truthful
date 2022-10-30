@@ -1,5 +1,9 @@
 package models
 
+import (
+	"time"
+)
+
 type RegisterInfos struct {
 	Username  string `json:"username"`
 	Password  string `json:"password"`
@@ -19,9 +23,12 @@ type UserPreviewInfos struct {
 }
 
 type Question struct {
-	Id     int    `json:"id"`
-	Author string `json:"author"`
-	Text   string `json:"text"`
+	Id                int       `json:"id"`
+	Text              string    `json:"text"`
+	AuthorId          int64     `json:"author_id"`
+	IsAuthorAnonymous bool      `json:"is_author_anonymous"`
+	ReceiverId        int       `json:"receiver_id"`
+	CreatedAt         time.Time `json:"created_at"`
 }
 
 type Answer struct {
