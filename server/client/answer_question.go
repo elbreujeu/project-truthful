@@ -40,7 +40,16 @@ func AnswerQuestion(userId int, questionId int, answerText string, authorIpAddre
 	}
 
 	if questionReceiverId != userId {
-		return 0, http.StatusForbidden, errors.New("user is not the author of the question")
+		return 0, http.StatusForbidden, errors.New("user is not the receiver of the question")
+	}
+
+	// we check if the user has already answered the question
+	alreadyAnswered, err := database.HasQuestionBeenAnswered(questionId, database.DB)
+	if err != nil {
+		return 0, http.StatusInternalServerError, err
+	}
+	if alreadyAnswered {
+		return 0, http.StatusForbidden, errors.New("user has already answered the question")
 	}
 
 	id, err := database.AddAnswer(userId, questionId, answerText, authorIpAddress, database.DB)
