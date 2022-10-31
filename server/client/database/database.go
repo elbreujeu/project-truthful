@@ -2,7 +2,6 @@ package database
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"os"
 	"project_truthful/models"
@@ -241,15 +240,12 @@ func GetQuestions(userId int, start int, end int, db *sql.DB) ([]models.Question
 func GetQuestionReceiverId(questionId int, db *sql.DB) (int, error) {
 	var userId int
 	err := db.QueryRow("SELECT receiver_id FROM question WHERE id = ?", questionId).Scan(&userId)
-	fmt.Println("FILS DE PUTE") // debug
 	if err != nil && err != sql.ErrNoRows {
 		log.Printf("Error getting question author for question %d, %v\n", questionId, err)
 		return 0, err
 	} else if err == sql.ErrNoRows {
-		log.Printf("No question found for id %d\n", questionId) // debug
 		return 0, err
 	}
-	log.Printf("userId = %d\n", userId) // debug
 	return userId, nil
 }
 
