@@ -251,6 +251,36 @@ func getQuestions(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func answerQuestion(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Received request to answer question from ip %s\n", r.RemoteAddr)
+
+	requesterId, _, err := parseAndVerifyAccessToken(w, r)
+	if err != nil {
+		return
+	}
+
+	var infos models.AnswerQuestionInfos
+	err = json.NewDecoder(r.Body).Decode(&infos)
+	if err != nil {
+		log.Printf("Error while parsing request body: %s\n", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "%s"}`, err.Error())
+		return
+	}
+
+	id, code, err := client.AnswerQuestion(requesterId, infos.QuestionId, infos.AnswerText, r.RemoteAddr)
+	if err != nil {
+		log.Printf("Error while answering question: %s\n", err.Error())
+		w.WriteHeader(code)
+		fmt.Fprintf(w, `{"message": "error while answering question", "error": "%s"}`, err.Error())
+		return
+	}
+
+	log.Printf("Question answered with id %d\n", id)
+	w.WriteHeader(http.StatusCreated)
+	fmt.Fprintf(w, `{"message": "Question answered", "id": %d}`, id)
+}
+
 func SetupRoutes(r *mux.Router) {
 	r.HandleFunc("/hello_world", homePage).Methods("GET")
 	r.HandleFunc("/register", register).Methods("POST")
@@ -260,4 +290,5 @@ func SetupRoutes(r *mux.Router) {
 	r.HandleFunc("/follow_user", followUser).Methods("POST")
 	r.HandleFunc("/ask_question", askQuestion).Methods("POST")
 	r.HandleFunc("/get_questions", getQuestions).Methods("GET")
+	r.HandleFunc("/answer_question", answerQuestion).Methods("POST")
 }
