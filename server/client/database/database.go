@@ -236,3 +236,30 @@ func GetQuestions(userId int, start int, end int, db *sql.DB) ([]models.Question
 	}
 	return questions, nil
 }
+
+func GetQuestionReceiverId(questionId int, db *sql.DB) (int, error) {
+	var userId int
+	err := db.QueryRow("SELECT receiver_id FROM question WHERE id = ?", questionId).Scan(&userId)
+	if err != nil && err != sql.ErrNoRows {
+		log.Printf("Error getting question author for question %d, %v\n", questionId, err)
+		return 0, err
+	} else if err == sql.ErrNoRows {
+		return 0, err
+	}
+	return userId, nil
+}
+
+func AddAnswer(userId int, questionId int, answerText string, answererIpAddress string, db *sql.DB) (int64, error) {
+	result, err := db.Exec("INSERT INTO answer (user_id, question_id, text, answerer_ip_address) VALUES (?, ?, ?, ?)", userId, questionId, answerText, answererIpAddress)
+	if err != nil {
+		log.Printf("Error inserting answer for user %d and question %d, %v\n", userId, questionId, err)
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		log.Printf("Error getting last inserted id for question, %v\n", err)
+		return 0, err
+	}
+	return id, nil
+}

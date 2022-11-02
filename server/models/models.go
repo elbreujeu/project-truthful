@@ -59,3 +59,8 @@ type AskQuestionInfos struct {
 	QuestionText      string `json:"question_text"`
 	IsAuthorAnonymous bool   `json:"is_author_anonymous"`
 }
+
+type AnswerQuestionInfos struct {
+	QuestionId int    `json:"question_id"`
+	AnswerText string `json:"text"`
+}
