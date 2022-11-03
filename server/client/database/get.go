@@ -14,7 +14,7 @@ func GetUserId(username string, db *sql.DB) (int, error) {
 		return 0, err
 	}
 	if err == sql.ErrNoRows {
-		return 0, nil
+		return 0, sql.ErrNoRows
 	}
 	return id, nil
 }
