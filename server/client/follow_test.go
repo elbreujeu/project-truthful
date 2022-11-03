@@ -91,7 +91,20 @@ func TestFollowUser(t *testing.T) {
 		t.Errorf("Expected error, got nil")
 	}
 
-	//tests for followeeId successfully followed
+	//tests for follow insert error
+	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(2).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1, 2).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+	mock.ExpectExec("INSERT INTO follow").WillReturnError(errors.New("error"))
+	code, err = FollowUser(1, 2)
+	if code != http.StatusInternalServerError {
+		t.Errorf("Expected http.StatusInternalServerError, got %d", code)
+	}
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
+
+	//tests for follow insert success
 	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(2).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1, 2).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
