@@ -99,7 +99,7 @@ func refreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("Token refresheded")
 	w.WriteHeader(code)
-	fmt.Fprintf(w, `{"message": "Token refresheded", "token": "%s"}`, newToken)
+	fmt.Fprintf(w, `{"message": "Token refreshed", "token": "%s"}`, newToken)
 }
 
 func getUserProfile(w http.ResponseWriter, r *http.Request) {
