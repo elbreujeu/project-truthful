@@ -57,13 +57,13 @@ CREATE TABLE `answer` (
 DROP TABLE IF EXISTS `answer_like`;
 CREATE TABLE `answer_like` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `answerId` int unsigned NOT NULL,
-  `like_author` int unsigned NOT NULL,
+  `answer_id` int unsigned NOT NULL,
+  `user_id` int unsigned NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `answerId` (`answerId`),
-  KEY `like_author` (`like_author`),
-  CONSTRAINT `answer_like_ibfk_1` FOREIGN KEY (`answerId`) REFERENCES `answer` (`id`),
-  CONSTRAINT `answer_like_ibfk_2` FOREIGN KEY (`like_author`) REFERENCES `user` (`id`)
+  KEY `answer_id` (`answer_id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `answer_like_ibfk_1` FOREIGN KEY (`answer_id`) REFERENCES `answer` (`id`),
+  CONSTRAINT `answer_like_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 

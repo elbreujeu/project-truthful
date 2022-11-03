@@ -281,6 +281,50 @@ func answerQuestion(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `{"message": "Question answered", "id": %d}`, id)
 }
 
+func likeAnswer(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Received request to like answer from ip %s\n", r.RemoteAddr)
+
+	requesterId, _, err := parseAndVerifyAccessToken(w, r)
+	if err != nil {
+		return
+	}
+
+	var infos models.LikeAnswerInfos
+	err = json.NewDecoder(r.Body).Decode(&infos)
+	if err != nil {
+		log.Printf("Error while parsing request body: %s\n", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "%s"}`, err.Error())
+		return
+	}
+
+	if infos.Like {
+		code, err := client.LikeAnswer(requesterId, infos.AnswerId)
+		if err != nil {
+			log.Printf("Error while liking answer: %s\n", err.Error())
+			w.WriteHeader(code)
+			fmt.Fprintf(w, `{"message": "error while liking answer", "error": "%s"}`, err.Error())
+			return
+		}
+	} else {
+		code, err := client.UnlikeAnswer(requesterId, infos.AnswerId)
+		if err != nil {
+			log.Printf("Error while unliking answer: %s\n", err.Error())
+			w.WriteHeader(code)
+			fmt.Fprintf(w, `{"message": "error while unliking answer", "error": "%s"}`, err.Error())
+			return
+		}
+	}
+
+	log.Printf("Answer liked by user %d\n", requesterId)
+	w.WriteHeader(http.StatusOK)
+	if infos.Like {
+		fmt.Fprintf(w, `{"message": "Answer liked"}`)
+	} else {
+		fmt.Fprintf(w, `{"message": "Answer unliked"}`)
+	}
+}
+
 func SetupRoutes(r *mux.Router) {
 	r.HandleFunc("/hello_world", homePage).Methods("GET")
 	r.HandleFunc("/register", register).Methods("POST")
@@ -291,4 +335,5 @@ func SetupRoutes(r *mux.Router) {
 	r.HandleFunc("/ask_question", askQuestion).Methods("POST")
 	r.HandleFunc("/get_questions", getQuestions).Methods("GET")
 	r.HandleFunc("/answer_question", answerQuestion).Methods("POST")
+	r.HandleFunc("/like_answer", likeAnswer).Methods("POST")
 }
