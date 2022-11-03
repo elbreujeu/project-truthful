@@ -5,11 +5,11 @@ import (
 	"log"
 )
 
-func CheckPostIdExists(postId int, db *sql.DB) (bool, error) {
+func CheckAnswerIdExists(answerId int, db *sql.DB) (bool, error) {
 	var count int
-	err := db.QueryRow("SELECT COUNT(*) FROM post WHERE id = ?", postId).Scan(&count)
+	err := db.QueryRow("SELECT COUNT(*) FROM answer WHERE id = ?", answerId).Scan(&count)
 	if err != nil {
-		log.Printf("Error checking if post %d exists, %v\n", postId, err)
+		log.Printf("Error checking if post %d exists, %v\n", answerId, err)
 		return false, err
 	}
 	return count > 0, nil

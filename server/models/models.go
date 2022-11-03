@@ -56,11 +56,16 @@ type FollowUserInfos struct {
 
 type AskQuestionInfos struct {
 	UserId            int    `json:"user_id"`
-	QuestionText      string `json:"question_text"`
+	QuestionText      string `json:"text"`
 	IsAuthorAnonymous bool   `json:"is_author_anonymous"`
 }
 
 type AnswerQuestionInfos struct {
 	QuestionId int    `json:"question_id"`
 	AnswerText string `json:"text"`
+}
+
+type LikeAnswerInfos struct {
+	AnswerId int  `json:"answer_id"`
+	Like     bool `json:"like"`
 }
