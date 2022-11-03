@@ -106,6 +106,7 @@ func TestRegister(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusCreated, w.Code)
 	}
 	assert.Equal(t, `{"message": "User created", "id": 1}`, w.Body.String())
+	os.Setenv("IS_TEST", "false")
 }
 
 func TestLogin(t *testing.T) {
@@ -168,6 +169,7 @@ func TestLogin(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
 	}
 	assert.Equal(t, `{"message": "User logged in", "token": "test"}`, w.Body.String())
+	os.Setenv("IS_TEST", "false")
 }
 
 func TestRefreshToken(t *testing.T) {
@@ -204,4 +206,5 @@ func TestRefreshToken(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
 	}
 	assert.Equal(t, `{"message": "Token refreshed", "token": "test"}`, w.Body.String())
+	os.Setenv("IS_TEST", "false")
 }
