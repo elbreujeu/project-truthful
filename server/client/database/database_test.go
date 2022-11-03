@@ -663,3 +663,31 @@ func TestGetUserProfileInfos(t *testing.T) {
 		t.Errorf("Database error: expected %d, got %d", expected.AnswerCount, profile.AnswerCount)
 	}
 }
+
+func TestAddAnswer(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating sqlmock: %s", err.Error())
+	}
+	defer db.Close()
+
+	// Test with query fail
+	mock.ExpectExec("INSERT INTO answer").WithArgs(1, 1, "content", "ip_address").WillReturnError(errors.New("error for db test"))
+	_, err = AddAnswer(1, 1, "content", "ip_address", db)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err == nil {
+		t.Errorf("Database error: expected error, got nil")
+	}
+
+	// Test with no error
+	mock.ExpectExec("INSERT INTO answer").WithArgs(2, 2, "content", "ip_address").WillReturnResult(sqlmock.NewResult(1, 1))
+	_, err = AddAnswer(2, 2, "content", "ip_address", db)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err != nil {
+		t.Errorf("Database error: expected nil, got %s", err.Error())
+	}
+}
