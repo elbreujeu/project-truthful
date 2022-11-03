@@ -1,15 +1,19 @@
 package routes
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"project_truthful/client/database"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
 
-//this function tests the SetupRoutes function
+// this function tests the SetupRoutes function
 func TestSetupRoutes(t *testing.T) {
 	router := mux.NewRouter()
 	SetupRoutes(router)
@@ -36,4 +40,70 @@ func TestMiddleware(t *testing.T) {
 	assert.Equal(t, "GET", w.Header().Get("Access-Control-Allow-Methods"))
 	assert.Equal(t, "*", w.Header().Get("Access-Control-Allow-Headers"))
 	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
+}
+
+func TestRegister(t *testing.T) {
+	router := mux.NewRouter()
+	SetupRoutes(router)
+	SetMiddleware(router)
+	// tests for json decoder error, todo
+	body := "<invalid json>"
+	r, _ := http.NewRequest("POST", "/register", bytes.NewBufferString(body))
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"message": "Invalid request body", "error": "invalid character '<' looking for beginning of value"}`, w.Body.String())
+
+	// checks with empty username
+	r, err := http.NewRequest("POST", "/register", bytes.NewBuffer([]byte(`{"username": "", "password": "Toto123@", "email_address": "toto@toto.fr", "birthdate": "1990-01-01"}`)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"message": "Invalid request body", "error": "missing fields"}`, w.Body.String())
+
+	// checks with register failure (invalid username)
+	r, err = http.NewRequest("POST", "/register", bytes.NewBuffer([]byte(`{"username": "to", "password": "Toto123@", "email_address": "toto@toto.fr", "birthdate": "1990-01-01"}`)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"message": "error while creating user", "error": "username must be between 3 and 20 characters"}`, w.Body.String())
+
+	// checks with register success
+	var mock sqlmock.Sqlmock
+	database.DB, mock, err = sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer database.DB.Close()
+	// sets the env variable for password hashing
+	os.Setenv("IS_TEST", "true")
+	// expect a query to check if the username is already taken
+	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs("toto").WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+	// expect a query to check if the email address is already taken
+	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs("toto@toto.fr").WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+	// expect a query to insert the user
+	mock.ExpectExec("INSERT INTO user").WithArgs("toto", "toto", "Toto123@", "toto@toto.fr", "1990-01-01").WillReturnResult(sqlmock.NewResult(1, 1))
+	r, err = http.NewRequest("POST", "/register", bytes.NewBuffer([]byte(`{"username": "toto", "password": "Toto123@", "email_address": "toto@toto.fr", "birthdate": "1990-01-01"}`)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusCreated {
+		t.Errorf("Expected status code %d, got %d", http.StatusCreated, w.Code)
+	}
+	assert.Equal(t, `{"message": "User created", "id": 1}`, w.Body.String())
+
 }
