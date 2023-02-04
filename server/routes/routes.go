@@ -166,50 +166,37 @@ func followUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": message})
 }
 
-// func askQuestion(w http.ResponseWriter, r *http.Request) {
-// 	log.Printf("Received request to ask question from ip %s\n", r.RemoteAddr)
+func askQuestion(c *gin.Context) {
+	log.Printf("Received request to ask question from ip %s\n", c.ClientIP())
+	accessToken, _, err := token.ParseAccessToken(c)
+	requesterId := 0
+	var code int
+	if err == nil {
+		requesterId, code, err = token.VerifyJWT(accessToken)
+		if err != nil {
+			log.Printf("Error while checking token: %s\n", err.Error())
+			c.JSON(code, gin.H{"message": "error while checking token", "error": err.Error()})
+			return
+		}
+	}
 
-// 	accessToken, _, err := token.ParseAccessToken(r)
-// 	requesterId := 0
-// 	var code int
-// 	if err == nil {
-// 		requesterId, code, err = token.VerifyJWT(accessToken)
-// 		if err != nil {
-// 			log.Printf("Error while checking token: %s\n", err.Error())
-// 			w.WriteHeader(code)
-// 			fmt.Fprintf(w, `{"message": "error while checking token", "error": "%s"}`, err.Error())
-// 			return
-// 		}
-// 	}
+	var infos models.AskQuestionInfos
+	if err = c.ShouldBindJSON(&infos); err != nil {
+		log.Printf("Error while parsing request body: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body", "error": err.Error()})
+		return
+	}
 
-// 	if r.Body == nil {
-// 		log.Printf("Error while parsing request body: missing fields\n")
-// 		w.WriteHeader(http.StatusBadRequest)
-// 		fmt.Fprintf(w, `{"message": "invalid request body", "error": "missing fields"}`)
-// 		return
-// 	}
+	id, code, err := client.AskQuestion(infos.QuestionText, requesterId, c.ClientIP(), infos.IsAuthorAnonymous, infos.UserId)
+	if err != nil {
+		log.Printf("Error while asking question: %s\n", err.Error())
+		c.JSON(code, gin.H{"message": "error while asking question", "error": err.Error()})
+		return
+	}
 
-// 	var infos models.AskQuestionInfos
-// 	err = json.NewDecoder(r.Body).Decode(&infos)
-// 	if err != nil {
-// 		log.Printf("Error while parsing request body: %s\n", err.Error())
-// 		w.WriteHeader(http.StatusBadRequest)
-// 		fmt.Fprintf(w, `{"message": "invalid request body", "error": "%s"}`, err.Error())
-// 		return
-// 	}
-
-// 	id, code, err := client.AskQuestion(infos.QuestionText, requesterId, r.RemoteAddr, infos.IsAuthorAnonymous, infos.UserId)
-// 	if err != nil {
-// 		log.Printf("Error while asking question: %s\n", err.Error())
-// 		w.WriteHeader(code)
-// 		fmt.Fprintf(w, `{"message": "error while asking question", "error": "%s"}`, err.Error())
-// 		return
-// 	}
-
-// 	log.Printf("Question asked with id %d\n", id)
-// 	w.WriteHeader(http.StatusCreated)
-// 	fmt.Fprintf(w, `{"message": "Question asked", "id": %d}`, id)
-// }
+	log.Printf("Question asked with id %d\n", id)
+	c.JSON(http.StatusCreated, gin.H{"message": "Question asked", "id": id})
+}
 
 // func getQuestions(w http.ResponseWriter, r *http.Request) {
 // 	log.Printf("Received request to get questions from ip %s\n", r.RemoteAddr)
@@ -337,7 +324,7 @@ func SetupRoutes(r *gin.Engine) {
 	r.GET("/refresh_token", refreshToken)
 	r.GET("/get_user_profile/:user", getUserProfile)
 	r.POST("/follow_user", followUser)
-	// r.POST("/ask_question", askQuestion)
+	r.POST("/ask_question", askQuestion)
 	// r.GET("/get_questions", getQuestions)
 	// r.POST("/answer_question", answerQuestion)
 	// r.POST("/like_answer", likeAnswer)

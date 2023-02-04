@@ -349,38 +349,66 @@ func TestFollowUser(t *testing.T) {
 	os.Setenv("IS_TEST", "false")
 }
 
-// func TestAskQuestion(t *testing.T) {
-// 	// With valid format token but invalid token
-// 	router := mux.NewRouter()
-// 	SetupRoutes(router)
-// 	SetMiddleware(router)
-// 	r, _ := http.NewRequest("POST", "/ask_question", nil)
-// 	r.Header.Set("Authorization", "Bearer invalid_token")
-// 	w := httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusInternalServerError {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
-// 	}
-// 	assert.Equal(t, `{"message": "error while checking token", "error": "token contains an invalid number of segments"}`, w.Body.String())
+func TestAskQuestion(t *testing.T) {
+	// With valid format token but invalid token
+	router := gin.Default()
+	SetupRoutes(router)
+	SetMiddleware(router)
+	r, _ := http.NewRequest("POST", "/ask_question", nil)
+	r.Header.Set("Authorization", "Bearer invalid_token")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+	assert.Equal(t, `{"error":"token contains an invalid number of segments","message":"error while checking token"}`, w.Body.String())
 
-// 	// With nil body
-// 	r, _ = http.NewRequest("POST", "/ask_question", nil)
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusBadRequest {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
-// 	}
-// 	assert.Equal(t, `{"message": "invalid request body", "error": "missing fields"}`, w.Body.String())
+	// With nil body
+	r, _ = http.NewRequest("POST", "/ask_question", nil)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"error":"invalid request","message":"invalid request body"}`, w.Body.String())
 
-// 	// With invalid body
-// 	body := []byte(`<invalid body>`)
-// 	r, _ = http.NewRequest("POST", "/ask_question", bytes.NewBuffer(body))
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusBadRequest {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
-// 	}
-// 	assert.Equal(t, `{"message": "invalid request body", "error": "invalid character '<' looking for beginning of value"}`, w.Body.String())
+	// With invalid body
+	body := []byte(`<invalid body>`)
+	r, _ = http.NewRequest("POST", "/ask_question", bytes.NewBuffer(body))
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"error":"invalid character '\u003c' looking for beginning of value","message":"invalid request body"}`, w.Body.String())
 
-// 	// Success
-// }
+	// Test for error when asking question
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	database.DB = db
+
+	body = []byte(`{"user_id": 1, "text":"question"}`)
+	r, _ = http.NewRequest("POST", "/ask_question", bytes.NewBuffer(body))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectExec("INSERT INTO question").WithArgs("question", "", 1).WillReturnError(errors.New("error"))
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+	assert.Equal(t, `{"error":"error","message":"error while asking question"}`, w.Body.String())
+
+	// Success
+	body = []byte(`{"user_id": 1, "text":"question"}`)
+	r, _ = http.NewRequest("POST", "/ask_question", bytes.NewBuffer(body))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectExec("INSERT INTO question").WithArgs("question", "", 1).WillReturnResult(sqlmock.NewResult(1, 1))
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusCreated {
+		t.Errorf("Expected status code %d, got %d", http.StatusCreated, w.Code)
+	}
+	assert.Equal(t, `{"id":1,"message":"Question asked"}`, w.Body.String())
+}
