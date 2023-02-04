@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"project_truthful/client"
+	"project_truthful/client/basicfuncs"
 	"project_truthful/client/token"
 	"project_truthful/models"
 
@@ -198,50 +199,50 @@ func askQuestion(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Question asked", "id": id})
 }
 
-// func getQuestions(w http.ResponseWriter, r *http.Request) {
-// 	log.Printf("Received request to get questions from ip %s\n", r.RemoteAddr)
+func getQuestions(c *gin.Context) {
+	log.Printf("Received request to get questions from ip %s\n", c.ClientIP())
 
-// 	//get the "count" parameter from query parameters
-// 	countStr := r.URL.Query().Get("count")
-// 	startStr := r.URL.Query().Get("start")
+	//get the "count" parameter from query parameters
+	countStr := c.Query("count")
+	startStr := c.Query("start")
 
-// 	count, err := basicfuncs.ConvertQueryParameterToInt(countStr, 10)
-// 	if err != nil {
-// 		log.Printf("Error while parsing count: %s\n", err.Error())
-// 		w.WriteHeader(http.StatusBadRequest)
-// 		fmt.Fprintf(w, `{"message": "Invalid count", "error": "%s"}`, err.Error())
-// 		return
-// 	}
+	count, err := basicfuncs.ConvertQueryParameterToInt(countStr, 10)
+	if err != nil {
+		log.Printf("Error while parsing count: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "invalid count",
+			"error":   err.Error(),
+		})
+		return
+	}
 
-// 	start, err := basicfuncs.ConvertQueryParameterToInt(startStr, 0)
-// 	if err != nil {
-// 		log.Printf("Error while parsing count: %s\n", err.Error())
-// 		w.WriteHeader(http.StatusBadRequest)
-// 		fmt.Fprintf(w, `{"message": "Invalid count", "error": "%s"}`, err.Error())
-// 		return
-// 	}
+	start, err := basicfuncs.ConvertQueryParameterToInt(startStr, 0)
+	if err != nil {
+		log.Printf("Error while parsing count: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "invalid count",
+			"error":   err.Error(),
+		})
+		return
+	}
 
-// 	userId, _, err := parseAndVerifyAccessToken(w, r)
-// 	if err != nil {
-// 		return
-// 	}
-// 	questions, code, err := client.GetQuestions(userId, start, count)
-// 	if err != nil {
-// 		log.Printf("Error while getting questions: %s\n", err.Error())
-// 		w.WriteHeader(code)
-// 		fmt.Fprintf(w, `{"message": "error while getting questions", "error": "%s"}`, err.Error())
-// 		return
-// 	}
+	userId, _, err := parseAndVerifyAccessToken(c)
+	if err != nil {
+		return
+	}
 
-// 	w.WriteHeader(http.StatusOK)
-// 	err = json.NewEncoder(w).Encode(questions)
-// 	if err != nil {
-// 		log.Printf("Error while encoding questions: %s\n", err.Error())
-// 		w.WriteHeader(http.StatusInternalServerError)
-// 		fmt.Fprintf(w, `{"message": "error while encoding questions", "error": "%s"}`, err.Error())
-// 		return
-// 	}
-// }
+	questions, code, err := client.GetQuestions(userId, start, count)
+	if err != nil {
+		log.Printf("Error while getting questions: %s\n", err.Error())
+		c.JSON(code, gin.H{
+			"message": "error while getting questions",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, questions)
+}
 
 // func answerQuestion(w http.ResponseWriter, r *http.Request) {
 // 	log.Printf("Received request to answer question from ip %s\n", r.RemoteAddr)
@@ -325,7 +326,7 @@ func SetupRoutes(r *gin.Engine) {
 	r.GET("/get_user_profile/:user", getUserProfile)
 	r.POST("/follow_user", followUser)
 	r.POST("/ask_question", askQuestion)
-	// r.GET("/get_questions", getQuestions)
+	r.GET("/get_questions", getQuestions)
 	// r.POST("/answer_question", answerQuestion)
 	// r.POST("/like_answer", likeAnswer)
 }

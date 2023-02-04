@@ -3,12 +3,16 @@ package routes
 import (
 	"bytes"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"project_truthful/client/database"
+	"project_truthful/helpunittesting"
+	"project_truthful/models"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
@@ -411,4 +415,111 @@ func TestAskQuestion(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusCreated, w.Code)
 	}
 	assert.Equal(t, `{"id":1,"message":"Question asked"}`, w.Body.String())
+}
+
+func TestGetQuestionsFailQueryParameters(t *testing.T) {
+	router := gin.Default()
+	SetupRoutes(router)
+	SetMiddleware(router)
+	r, _ := http.NewRequest("GET", "/get_questions?count=abc", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"error":"strconv.Atoi: parsing \"abc\": invalid syntax","message":"invalid count"}`, w.Body.String())
+
+	r, _ = http.NewRequest("GET", "/get_questions?count=1&start=abc", nil)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"error":"strconv.Atoi: parsing \"abc\": invalid syntax","message":"invalid count"}`, w.Body.String())
+}
+
+func TestGetQuestionsWithParameters(t *testing.T) {
+	// With valid format token but invalid token
+	router := gin.Default()
+	SetupRoutes(router)
+	SetMiddleware(router)
+	r, _ := http.NewRequest("GET", "/get_questions", nil)
+	r.Header.Set("Authorization", "Bearer invalid_token")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+	assert.Equal(t, `{"error":"token contains an invalid number of segments","message":"error while checking token"}`, w.Body.String())
+
+	// Test for error while getting questions
+	os.Setenv("IS_TEST", "true")
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	database.DB = db
+	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnError(errors.New("error for checking user"))
+	r, _ = http.NewRequest("GET", "/get_questions", nil)
+	r.Header.Set("Authorization", "Bearer token")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+	assert.Equal(t, `{"error":"error for checking user","message":"error while getting questions"}`, w.Body.String())
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+
+	// Test for success while getting questions
+	// Generate questions
+	questionTime := time.Now()
+	questions := helpunittesting.GenerateTestQuestions(10, 1, questionTime)
+	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "creation_date"})
+	for _, question := range questions {
+		rows.AddRow(question.Id, question.Text, question.AuthorId, question.IsAuthorAnonymous, question.ReceiverId, question.CreatedAt)
+	}
+	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery("SELECT").WithArgs(1, 0, 10).WillReturnRows(rows)
+
+	for _, question := range questions {
+		mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(question.Id).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+	}
+	r, _ = http.NewRequest("GET", "/get_questions", nil)
+	r.Header.Set("Authorization", "Bearer token")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+	var returnedQuestions []models.Question
+	if err := json.Unmarshal(w.Body.Bytes(), &returnedQuestions); err != nil {
+		t.Errorf("Error while unmarshalling response: %s", err)
+	}
+	if len(returnedQuestions) != 10 {
+		t.Errorf("Expected 10 questions, got %d", len(returnedQuestions))
+	}
+	for i, q := range returnedQuestions {
+		if q.Id != questions[i].Id {
+			t.Errorf("Expected Id to be %d, but got %d", questions[i].Id, q.Id)
+		}
+		if q.Text != questions[i].Text {
+			t.Errorf("Expected Text to be %s, but got %s", questions[i].Text, q.Text)
+		}
+		if q.AuthorId != questions[i].AuthorId {
+			t.Errorf("Expected AuthorId to be %d, but got %d", questions[i].AuthorId, q.AuthorId)
+		}
+		if q.IsAuthorAnonymous != questions[i].IsAuthorAnonymous {
+			t.Errorf("Expected IsAuthorAnonymous to be %t, but got %t", questions[i].IsAuthorAnonymous, q.IsAuthorAnonymous)
+		}
+		if q.ReceiverId != questions[i].ReceiverId {
+			t.Errorf("Expected ReceiverId to be %d, but got %d", questions[i].ReceiverId, q.ReceiverId)
+		}
+	}
+
+	os.Setenv("IS_TEST", "false")
 }
