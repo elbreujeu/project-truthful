@@ -10,42 +10,50 @@ import (
 	"project_truthful/client/token"
 	"project_truthful/models"
 
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/mux"
 )
 
-func homePage(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, `{"message": "Hello world !"}`)
+func helloWorld(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"message": "Hello world !"})
 }
 
-func register(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Received request to create user from ip %s\n", r.RemoteAddr)
+func register(c *gin.Context) {
+	log.Printf("Received request to create user from ip %s\n", c.ClientIP())
 
 	var infos models.RegisterInfos
-	err := json.NewDecoder(r.Body).Decode(&infos)
-	if err != nil {
+	if err := c.ShouldBindJSON(&infos); err != nil {
 		log.Printf("Error while parsing request body: %s\n", err.Error())
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "%s"}`, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request body",
+			"error":   err.Error(),
+		})
 		return
 	}
 
 	if infos.Username == "" || infos.Password == "" || infos.Email == "" || infos.Birthdate == "" {
 		log.Printf("Error while parsing request body: missing fields\n")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "missing fields"}`)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request body",
+			"error":   "missing fields",
+		})
 		return
 	}
 
 	id, code, err := client.Register(infos)
 	if err != nil {
 		log.Printf("Error while creating user: %s\n", err.Error())
-		w.WriteHeader(code)
-		fmt.Fprintf(w, `{"message": "error while creating user", "error": "%s"}`, err.Error())
+		c.JSON(code, gin.H{
+			"message": "error while creating user",
+			"error":   err.Error(),
+		})
 		return
 	}
 	log.Printf("User created with id %d\n", id)
-	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintf(w, `{"message": "User created", "id": %d}`, id)
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "User created",
+		"id":      id,
+	})
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
@@ -340,15 +348,15 @@ func likeAnswer(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func SetupRoutes(r *mux.Router) {
-	r.HandleFunc("/hello_world", homePage).Methods("GET")
-	r.HandleFunc("/register", register).Methods("POST")
-	r.HandleFunc("/login", login).Methods("POST")
-	r.HandleFunc("/refresh_token", refreshToken).Methods("GET")
-	r.HandleFunc("/get_user_profile/{user}", getUserProfile).Methods("GET")
-	r.HandleFunc("/follow_user", followUser).Methods("POST")
-	r.HandleFunc("/ask_question", askQuestion).Methods("POST")
-	r.HandleFunc("/get_questions", getQuestions).Methods("GET")
-	r.HandleFunc("/answer_question", answerQuestion).Methods("POST")
-	r.HandleFunc("/like_answer", likeAnswer).Methods("POST")
+func SetupRoutes(r *gin.Engine) {
+	r.GET("/hello_world", helloWorld)
+	r.POST("/register", register)
+	// r.POST("/login", login)
+	// r.GET("/refresh_token", refreshToken)
+	// r.GET("/get_user_profile/:user", getUserProfile)
+	// r.POST("/follow_user", followUser)
+	// r.POST("/ask_question", askQuestion)
+	// r.GET("/get_questions", getQuestions)
+	// r.POST("/answer_question", answerQuestion)
+	// r.POST("/like_answer", likeAnswer)
 }
