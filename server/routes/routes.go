@@ -134,12 +134,24 @@ func followUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Body == nil {
+		log.Printf("Error while parsing request body: missing fields\n")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "missing fields"}`)
+		return
+	}
+
 	var infos models.FollowUserInfos
 	err = json.NewDecoder(r.Body).Decode(&infos)
 	if err != nil {
 		log.Printf("Error while parsing request body: %s\n", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "%s"}`, err.Error())
+		return
+	} else if infos.UserId == 0 {
+		log.Printf("Error while parsing request body: missing fields\n")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "missing fields"}`)
 		return
 	}
 
