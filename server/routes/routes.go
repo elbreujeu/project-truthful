@@ -244,35 +244,31 @@ func getQuestions(c *gin.Context) {
 	c.JSON(http.StatusOK, questions)
 }
 
-// func answerQuestion(w http.ResponseWriter, r *http.Request) {
-// 	log.Printf("Received request to answer question from ip %s\n", r.RemoteAddr)
+func answerQuestion(c *gin.Context) {
+	log.Printf("Received request to answer question from ip %s\n", c.ClientIP())
+	requesterId, _, err := parseAndVerifyAccessToken(c)
+	if err != nil {
+		return
+	}
 
-// 	requesterId, _, err := parseAndVerifyAccessToken(w, r)
-// 	if err != nil {
-// 		return
-// 	}
+	var infos models.AnswerQuestionInfos
+	err = c.ShouldBindJSON(&infos)
+	if err != nil {
+		log.Printf("Error while parsing request body: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "error while parsing request body", "error": err.Error()})
+		return
+	}
 
-// 	var infos models.AnswerQuestionInfos
-// 	err = json.NewDecoder(r.Body).Decode(&infos)
-// 	if err != nil {
-// 		log.Printf("Error while parsing request body: %s\n", err.Error())
-// 		w.WriteHeader(http.StatusBadRequest)
-// 		fmt.Fprintf(w, `{"message": "invalid request body", "error": "%s"}`, err.Error())
-// 		return
-// 	}
+	id, code, err := client.AnswerQuestion(requesterId, infos.QuestionId, infos.AnswerText, c.ClientIP())
+	if err != nil {
+		log.Printf("Error while answering question: %s\n", err.Error())
+		c.JSON(code, gin.H{"message": "error while answering question", "error": err.Error()})
+		return
+	}
 
-// 	id, code, err := client.AnswerQuestion(requesterId, infos.QuestionId, infos.AnswerText, r.RemoteAddr)
-// 	if err != nil {
-// 		log.Printf("Error while answering question: %s\n", err.Error())
-// 		w.WriteHeader(code)
-// 		fmt.Fprintf(w, `{"message": "error while answering question", "error": "%s"}`, err.Error())
-// 		return
-// 	}
-
-// 	log.Printf("Question answered with id %d\n", id)
-// 	w.WriteHeader(http.StatusCreated)
-// 	fmt.Fprintf(w, `{"message": "Question answered", "id": %d}`, id)
-// }
+	log.Printf("Question answered with id %d\n", id)
+	c.JSON(http.StatusCreated, gin.H{"message": "question answered", "id": id})
+}
 
 // func likeAnswer(w http.ResponseWriter, r *http.Request) {
 // 	log.Printf("Received request to like answer from ip %s\n", r.RemoteAddr)
@@ -327,6 +323,6 @@ func SetupRoutes(r *gin.Engine) {
 	r.POST("/follow_user", followUser)
 	r.POST("/ask_question", askQuestion)
 	r.GET("/get_questions", getQuestions)
-	// r.POST("/answer_question", answerQuestion)
+	r.POST("/answer_question", answerQuestion)
 	// r.POST("/like_answer", likeAnswer)
 }

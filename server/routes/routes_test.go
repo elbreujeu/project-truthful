@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"project_truthful/client/basicfuncs"
 	"project_truthful/client/database"
 	"project_truthful/helpunittesting"
 	"project_truthful/models"
@@ -520,6 +521,73 @@ func TestGetQuestionsWithParameters(t *testing.T) {
 			t.Errorf("Expected ReceiverId to be %d, but got %d", questions[i].ReceiverId, q.ReceiverId)
 		}
 	}
+
+	os.Setenv("IS_TEST", "false")
+}
+
+func TestAnswerQuestion(t *testing.T) {
+	// With valid format token but invalid token
+	router := gin.Default()
+	SetupRoutes(router)
+	SetMiddleware(router)
+	r, _ := http.NewRequest("POST", "/answer_question", nil)
+	r.Header.Set("Authorization", "Bearer invalid_token")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+	assert.Equal(t, `{"error":"token contains an invalid number of segments","message":"error while checking token"}`, w.Body.String())
+
+	os.Setenv("IS_TEST", "true")
+
+	// Test with invalid request body
+	requestBody := bytes.NewBuffer([]byte(`<invalid json>`))
+	r, _ = http.NewRequest("POST", "/answer_question", requestBody)
+	r.Header.Set("Authorization", "Bearer valid_token")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"error":"invalid character '\u003c' looking for beginning of value","message":"error while parsing request body"}`, w.Body.String())
+
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+	database.DB = db
+
+	// Test with error when answering question
+	str := basicfuncs.GenerateRandomString(1500)
+	requestBody = bytes.NewBuffer([]byte(`{"question_id": 1, "text": "` + str + `"}`))
+	r, _ = http.NewRequest("POST", "/answer_question", requestBody)
+	r.Header.Set("Authorization", "Bearer valid_token")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"error":"answer is too long","message":"error while answering question"}`, w.Body.String())
+
+	// Test success
+	requestBody = bytes.NewBuffer([]byte(`{"question_id": 1, "text": "answer"}`))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery("SELECT receiver_id FROM question").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+	mock.ExpectExec("INSERT INTO answer").WithArgs(1, 1, "answer", "").WillReturnResult(sqlmock.NewResult(1, 1))
+	r, _ = http.NewRequest("POST", "/answer_question", requestBody)
+	r.Header.Set("Authorization", "Bearer valid_token")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+	if w.Code != http.StatusCreated {
+		t.Errorf("Expected status code %d, got %d", http.StatusCreated, w.Code)
+	}
+	assert.Equal(t, `{"id":1,"message":"question answered"}`, w.Body.String())
 
 	os.Setenv("IS_TEST", "false")
 }
