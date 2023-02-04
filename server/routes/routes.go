@@ -56,35 +56,43 @@ func register(c *gin.Context) {
 	})
 }
 
-func login(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Received request to login from ip %s\n", r.RemoteAddr)
+func login(c *gin.Context) {
+	log.Printf("Received request to login from ip %s\n", c.ClientIP())
 
 	var infos models.LoginInfos
-	err := json.NewDecoder(r.Body).Decode(&infos)
+	err := c.ShouldBindJSON(&infos)
 	if err != nil {
 		log.Printf("Error while parsing request body: %s\n", err.Error())
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "%s"}`, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request body",
+			"error":   err.Error(),
+		})
 		return
 	}
 
 	if infos.Username == "" || infos.Password == "" {
 		log.Printf("Error while parsing request body: missing fields\n")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "missing fields"}`)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request body",
+			"error":   "missing fields",
+		})
 		return
 	}
 
 	token, code, err := client.Login(infos)
 	if err != nil {
 		log.Printf("Error while logging in: %s\n", err.Error())
-		w.WriteHeader(code)
-		fmt.Fprintf(w, `{"message": "error while logging in", "error": "%s"}`, err.Error())
+		c.JSON(code, gin.H{
+			"message": "error while logging in",
+			"error":   err.Error(),
+		})
 		return
 	}
 	log.Printf("User logged in with token %s\n", token)
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, `{"message": "User logged in", "token": "%s"}`, token)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User logged in",
+		"token":   token,
+	})
 }
 
 func refreshToken(w http.ResponseWriter, r *http.Request) {
@@ -351,7 +359,7 @@ func likeAnswer(w http.ResponseWriter, r *http.Request) {
 func SetupRoutes(r *gin.Engine) {
 	r.GET("/hello_world", helloWorld)
 	r.POST("/register", register)
-	// r.POST("/login", login)
+	r.POST("/login", login)
 	// r.GET("/refresh_token", refreshToken)
 	// r.GET("/get_user_profile/:user", getUserProfile)
 	// r.POST("/follow_user", followUser)

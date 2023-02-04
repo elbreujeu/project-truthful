@@ -2,6 +2,7 @@ package routes
 
 import (
 	"bytes"
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -110,68 +111,68 @@ func TestRegister(t *testing.T) {
 	os.Setenv("IS_TEST", "false")
 }
 
-// func TestLogin(t *testing.T) {
-// 	router := mux.NewRouter()
-// 	SetupRoutes(router)
-// 	SetMiddleware(router)
-// 	// tests for json decoder error, todo
-// 	body := "<invalid json>"
-// 	r, _ := http.NewRequest("POST", "/login", bytes.NewBufferString(body))
-// 	w := httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusBadRequest {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
-// 	}
-// 	assert.Equal(t, `{"message": "Invalid request body", "error": "invalid character '<' looking for beginning of value"}`, w.Body.String())
+func TestLogin(t *testing.T) {
+	router := gin.Default()
+	SetupRoutes(router)
+	SetMiddleware(router)
+	// tests for json decoder error, todo
+	body := "<invalid json>"
+	r, _ := http.NewRequest("POST", "/login", bytes.NewBufferString(body))
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"error":"invalid character '\u003c' looking for beginning of value","message":"Invalid request body"}`, w.Body.String())
 
-// 	// checks with empty username
-// 	r, err := http.NewRequest("POST", "/login", bytes.NewBuffer([]byte(`{"username": "", "password": "Toto123@"}`)))
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusBadRequest {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
-// 	}
-// 	assert.Equal(t, `{"message": "Invalid request body", "error": "missing fields"}`, w.Body.String())
+	// checks with empty username
+	r, err := http.NewRequest("POST", "/login", bytes.NewBuffer([]byte(`{"username": "", "password": "Toto123@"}`)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"error":"missing fields","message":"Invalid request body"}`, w.Body.String())
 
-// 	var mock sqlmock.Sqlmock
-// 	database.DB, mock, err = sqlmock.New()
-// 	if err != nil {
-// 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-// 	}
-// 	defer database.DB.Close()
+	var mock sqlmock.Sqlmock
+	database.DB, mock, err = sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer database.DB.Close()
 
-// 	// checks with login failure (invalid username)
-// 	mock.ExpectQuery("SELECT (.+) FROM user").WithArgs("toto").WillReturnError(sql.ErrNoRows)
-// 	r, err = http.NewRequest("POST", "/login", bytes.NewBuffer([]byte(`{"username": "toto", "password": "Toto123@"}`)))
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusNotFound {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusNotFound, w.Code)
-// 	}
-// 	assert.Equal(t, `{"message": "error while logging in", "error": "user not found"}`, w.Body.String())
+	// checks with login failure (invalid username)
+	mock.ExpectQuery("SELECT (.+) FROM user").WithArgs("toto").WillReturnError(sql.ErrNoRows)
+	r, err = http.NewRequest("POST", "/login", bytes.NewBuffer([]byte(`{"username": "toto", "password": "Toto123@"}`)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusNotFound {
+		t.Errorf("Expected status code %d, got %d", http.StatusNotFound, w.Code)
+	}
+	assert.Equal(t, `{"error":"user not found","message":"error while logging in"}`, w.Body.String())
 
-// 	// checks with login success
-// 	os.Setenv("IS_TEST", "true")
-// 	mock.ExpectQuery("SELECT id FROM user").WithArgs("toto").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-// 	mock.ExpectQuery("SELECT password FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"password"}).AddRow("Toto123@"))
-// 	r, err = http.NewRequest("POST", "/login", bytes.NewBuffer([]byte(`{"username": "toto", "password": "Toto123@"}`)))
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusOK {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
-// 	}
-// 	assert.Equal(t, `{"message": "User logged in", "token": "test"}`, w.Body.String())
-// 	os.Setenv("IS_TEST", "false")
-// }
+	// checks with login success
+	os.Setenv("IS_TEST", "true")
+	mock.ExpectQuery("SELECT id FROM user").WithArgs("toto").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectQuery("SELECT password FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"password"}).AddRow("Toto123@"))
+	r, err = http.NewRequest("POST", "/login", bytes.NewBuffer([]byte(`{"username": "toto", "password": "Toto123@"}`)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
+	}
+	assert.Equal(t, `{"message":"User logged in","token":"test"}`, w.Body.String())
+	os.Setenv("IS_TEST", "false")
+}
 
 // func TestRefreshToken(t *testing.T) {
 // 	// With invalid format token
