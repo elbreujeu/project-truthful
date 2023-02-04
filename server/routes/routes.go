@@ -99,7 +99,7 @@ func refreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("Token refresheded")
 	w.WriteHeader(code)
-	fmt.Fprintf(w, `{"message": "Token refresheded", "token": "%s"}`, newToken)
+	fmt.Fprintf(w, `{"message": "Token refreshed", "token": "%s"}`, newToken)
 }
 
 func getUserProfile(w http.ResponseWriter, r *http.Request) {
@@ -134,12 +134,24 @@ func followUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Body == nil {
+		log.Printf("Error while parsing request body: missing fields\n")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "missing fields"}`)
+		return
+	}
+
 	var infos models.FollowUserInfos
 	err = json.NewDecoder(r.Body).Decode(&infos)
 	if err != nil {
 		log.Printf("Error while parsing request body: %s\n", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "%s"}`, err.Error())
+		return
+	} else if infos.UserId == 0 {
+		log.Printf("Error while parsing request body: missing fields\n")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "missing fields"}`)
 		return
 	}
 
@@ -167,14 +179,10 @@ func followUser(w http.ResponseWriter, r *http.Request) {
 func askQuestion(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Received request to ask question from ip %s\n", r.RemoteAddr)
 
-	accessToken, code, err := token.ParseAccessToken(r)
+	accessToken, _, err := token.ParseAccessToken(r)
 	requesterId := 0
-	if err != nil && err.Error() != "missing fields" {
-		log.Printf("Error while parsing token: %s\n", err.Error())
-		w.WriteHeader(code)
-		fmt.Fprintf(w, `{"message": "error while parsing token", "error": "%s"}`, err.Error())
-		return
-	} else if err == nil {
+	var code int
+	if err == nil {
 		requesterId, code, err = token.VerifyJWT(accessToken)
 		if err != nil {
 			log.Printf("Error while checking token: %s\n", err.Error())
@@ -182,6 +190,13 @@ func askQuestion(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, `{"message": "error while checking token", "error": "%s"}`, err.Error())
 			return
 		}
+	}
+
+	if r.Body == nil {
+		log.Printf("Error while parsing request body: missing fields\n")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "missing fields"}`)
+		return
 	}
 
 	var infos models.AskQuestionInfos
