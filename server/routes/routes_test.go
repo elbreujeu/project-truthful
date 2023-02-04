@@ -345,3 +345,39 @@ func TestFollowUser(t *testing.T) {
 
 	os.Setenv("IS_TEST", "false")
 }
+
+func TestAskQuestion(t *testing.T) {
+	// With valid format token but invalid token
+	router := mux.NewRouter()
+	SetupRoutes(router)
+	SetMiddleware(router)
+	r, _ := http.NewRequest("POST", "/ask_question", nil)
+	r.Header.Set("Authorization", "Bearer invalid_token")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+	assert.Equal(t, `{"message": "error while checking token", "error": "token contains an invalid number of segments"}`, w.Body.String())
+
+	// With nil body
+	r, _ = http.NewRequest("POST", "/ask_question", nil)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"message": "Invalid request body", "error": "missing fields"}`, w.Body.String())
+
+	// With invalid body
+	body := []byte(`<invalid body>`)
+	r, _ = http.NewRequest("POST", "/ask_question", bytes.NewBuffer(body))
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"message": "Invalid request body", "error": "invalid character '<' looking for beginning of value"}`, w.Body.String())
+
+	// Success
+}
