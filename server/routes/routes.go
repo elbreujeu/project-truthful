@@ -270,49 +270,44 @@ func answerQuestion(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "question answered", "id": id})
 }
 
-// func likeAnswer(w http.ResponseWriter, r *http.Request) {
-// 	log.Printf("Received request to like answer from ip %s\n", r.RemoteAddr)
+func likeAnswer(c *gin.Context) {
+	log.Printf("Received request to like answer from ip %s\n", c.ClientIP())
 
-// 	requesterId, _, err := parseAndVerifyAccessToken(w, r)
-// 	if err != nil {
-// 		return
-// 	}
+	requesterId, _, err := parseAndVerifyAccessToken(c)
+	if err != nil {
+		return
+	}
 
-// 	var infos models.LikeAnswerInfos
-// 	err = json.NewDecoder(r.Body).Decode(&infos)
-// 	if err != nil {
-// 		log.Printf("Error while parsing request body: %s\n", err.Error())
-// 		w.WriteHeader(http.StatusBadRequest)
-// 		fmt.Fprintf(w, `{"message": "invalid request body", "error": "%s"}`, err.Error())
-// 		return
-// 	}
+	var infos models.LikeAnswerInfos
+	err = c.ShouldBindJSON(&infos)
+	if err != nil {
+		log.Printf("Error while parsing request body: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "error while parsing request body", "error": err.Error()})
+		return
+	}
 
-// 	if infos.Like {
-// 		code, err := client.LikeAnswer(requesterId, infos.AnswerId)
-// 		if err != nil {
-// 			log.Printf("Error while liking answer: %s\n", err.Error())
-// 			w.WriteHeader(code)
-// 			fmt.Fprintf(w, `{"message": "error while liking answer", "error": "%s"}`, err.Error())
-// 			return
-// 		}
-// 	} else {
-// 		code, err := client.UnlikeAnswer(requesterId, infos.AnswerId)
-// 		if err != nil {
-// 			log.Printf("Error while unliking answer: %s\n", err.Error())
-// 			w.WriteHeader(code)
-// 			fmt.Fprintf(w, `{"message": "error while unliking answer", "error": "%s"}`, err.Error())
-// 			return
-// 		}
-// 	}
+	if infos.Like {
+		code, err := client.LikeAnswer(requesterId, infos.AnswerId)
+		if err != nil {
+			log.Printf("Error while liking answer: %s\n", err.Error())
+			c.JSON(code, gin.H{"message": "error while liking answer", "error": err.Error()})
+			return
+		}
+	} else {
+		code, err := client.UnlikeAnswer(requesterId, infos.AnswerId)
+		if err != nil {
+			log.Printf("Error while unliking answer: %s\n", err.Error())
+			c.JSON(code, gin.H{"message": "error while unliking answer", "error": err.Error()})
+			return
+		}
+	}
 
-// 	log.Printf("Answer liked by user %d\n", requesterId)
-// 	w.WriteHeader(http.StatusOK)
-// 	if infos.Like {
-// 		fmt.Fprintf(w, `{"message": "Answer liked"}`)
-// 	} else {
-// 		fmt.Fprintf(w, `{"message": "Answer unliked"}`)
-// 	}
-// }
+	if infos.Like {
+		c.JSON(http.StatusCreated, gin.H{"message": "answer liked"})
+	} else {
+		c.JSON(http.StatusOK, gin.H{"message": "answer unliked"})
+	}
+}
 
 func SetupRoutes(r *gin.Engine) {
 	r.GET("/hello_world", helloWorld)
@@ -324,5 +319,5 @@ func SetupRoutes(r *gin.Engine) {
 	r.POST("/ask_question", askQuestion)
 	r.GET("/get_questions", getQuestions)
 	r.POST("/answer_question", answerQuestion)
-	// r.POST("/like_answer", likeAnswer)
+	r.POST("/like_answer", likeAnswer)
 }

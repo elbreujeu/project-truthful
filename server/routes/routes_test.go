@@ -591,3 +591,130 @@ func TestAnswerQuestion(t *testing.T) {
 
 	os.Setenv("IS_TEST", "false")
 }
+
+func TestLikeAnswerErrors(t *testing.T) {
+	// With valid format token but invalid token
+	router := gin.Default()
+	SetupRoutes(router)
+	SetMiddleware(router)
+	r, _ := http.NewRequest("POST", "/like_answer", nil)
+	r.Header.Set("Authorization", "Bearer invalid_token")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+	assert.Equal(t, `{"error":"token contains an invalid number of segments","message":"error while checking token"}`, w.Body.String())
+
+	os.Setenv("IS_TEST", "true")
+
+	// Test with invalid request body
+	requestBody := bytes.NewBuffer([]byte(`<invalid json>`))
+	r, _ = http.NewRequest("POST", "/like_answer", requestBody)
+	r.Header.Set("Authorization", "Bearer valid_token")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"error":"invalid character '\u003c' looking for beginning of value","message":"error while parsing request body"}`, w.Body.String())
+	os.Setenv("IS_TEST", "false")
+
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+	database.DB = db
+
+	// Test with error when liking answer
+	os.Setenv("IS_TEST", "true")
+	requestBody = bytes.NewBuffer([]byte(`{"answer_id": 1, "like": true}`))
+	r, _ = http.NewRequest("POST", "/like_answer", requestBody)
+	r.Header.Set("Authorization", "Bearer valid_token")
+	w = httptest.NewRecorder()
+	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnError(errors.New("error when getting user"))
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+	assert.Equal(t, `{"error":"error when getting user","message":"error while liking answer"}`, w.Body.String())
+
+	// Test with error when unliking answer
+	requestBody = bytes.NewBuffer([]byte(`{"answer_id": 1, "like": false}`))
+	r, _ = http.NewRequest("POST", "/like_answer", requestBody)
+	r.Header.Set("Authorization", "Bearer valid_token")
+	w = httptest.NewRecorder()
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1, 1).WillReturnError(errors.New("error when getting user"))
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+	assert.Equal(t, `{"error":"error when getting user","message":"error while unliking answer"}`, w.Body.String())
+
+	os.Setenv("IS_TEST", "false")
+}
+
+func TestLikeAnswerSuccess(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+	database.DB = db
+	router := gin.Default()
+	SetupRoutes(router)
+	SetMiddleware(router)
+	os.Setenv("IS_TEST", "true")
+
+	// Test success
+	requestBody := bytes.NewBuffer([]byte(`{"answer_id": 1, "like": true}`))
+	r, _ := http.NewRequest("POST", "/like_answer", requestBody)
+	r.Header.Set("Authorization", "Bearer valid_token")
+	w := httptest.NewRecorder()
+	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1, 1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+	mock.ExpectExec("INSERT INTO answer_like").WithArgs(1, 1).WillReturnResult(sqlmock.NewResult(1, 1))
+	router.ServeHTTP(w, r)
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+	if w.Code != http.StatusCreated {
+		t.Errorf("Expected status code %d, got %d", http.StatusCreated, w.Code)
+	}
+	assert.Equal(t, `{"message":"answer liked"}`, w.Body.String())
+
+	os.Setenv("IS_TEST", "false")
+}
+
+func TestUnlikeAnswerSuccess(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+	database.DB = db
+	router := gin.Default()
+	SetupRoutes(router)
+	SetMiddleware(router)
+	os.Setenv("IS_TEST", "true")
+
+	// Test success
+	requestBody := bytes.NewBuffer([]byte(`{"answer_id": 1, "like": false}`))
+	r, _ := http.NewRequest("POST", "/like_answer", requestBody)
+	r.Header.Set("Authorization", "Bearer valid_token")
+	w := httptest.NewRecorder()
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1, 1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectExec("DELETE FROM answer_like").WithArgs(1, 1).WillReturnResult(sqlmock.NewResult(1, 1))
+	router.ServeHTTP(w, r)
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
+	}
+	assert.Equal(t, `{"message":"answer unliked"}`, w.Body.String())
+
+	os.Setenv("IS_TEST", "false")
+}
