@@ -1,0 +1,49 @@
+name: Back-end CI
+
+on: [pull_request]
+
+env:
+  GO111MODULE: "on"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.x
+
+    - name: Run tests
+      run: |
+        cd server
+        output=$(go test -short -v=0 -cover ./...)
+        total=0
+        count=0
+        while read -r line; do
+          if echo "$line" | grep -q "^ok" && ! echo "$line" | grep -q "token"; then
+            echo "$line"
+            coverage=$(echo "$line" | awk '{ split($5, arr, "."); print arr[1] }')
+            total=$((total + coverage))
+            count=$((count + 1))
+          fi
+        done <<< "$output"
+        if [ $count -ne 0 ]; then
+          average=$((total / count))
+          if [ $average -ge 80 ]; then
+            echo "The coverage is $average%, which is above 80%"
+            exit 0
+          else
+            echo "The coverage is $average%, which is below 80%"
+            exit 1
+          fi
+        else
+          echo "No coverage information found"
+          exit 1
+        fi
+      env:
+        GO111MODULE: "on"
