@@ -2,40 +2,14 @@ package client
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"project_truthful/client/database"
+	"project_truthful/helpunittesting"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 )
-
-func TestGenerateTestQuestions(t *testing.T) {
-	count := 5
-	receiverId := 1
-	creationTime := time.Now()
-	questions := GenerateTestQuestions(count, receiverId, creationTime)
-	if len(questions) != count {
-		t.Errorf("Expected number of questions to be %d, but got %d", count, len(questions))
-	}
-
-	for i, q := range questions {
-		expectedText := "question" + fmt.Sprintf("%d", i)
-		if q.Text != expectedText {
-			t.Errorf("Expected text to be %s, but got %s", expectedText, q.Text)
-		}
-		if q.IsAuthorAnonymous != false {
-			t.Errorf("Expected IsAuthorAnonymous to be %v, but got %v", false, q.IsAuthorAnonymous)
-		}
-		if q.ReceiverId != receiverId {
-			t.Errorf("Expected ReceiverId to be %d, but got %d", receiverId, q.ReceiverId)
-		}
-		if q.CreatedAt != creationTime {
-			t.Errorf("Expected CreatedAt to be %v, but got %v", creationTime, q.CreatedAt)
-		}
-	}
-}
 
 func TestGetQuestionsFail(t *testing.T) {
 	db, mock, err := sqlmock.New()
@@ -119,7 +93,7 @@ func TestGetQuestionsNoAnswers(t *testing.T) {
 	// test with existing user id and questions, all not answered
 	// generate questions
 	curTime := time.Now()
-	questions := GenerateTestQuestions(30, 1, curTime)
+	questions := helpunittesting.GenerateTestQuestions(30, 1, curTime)
 
 	// generate rows
 	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "creation_date"})
@@ -177,7 +151,7 @@ func TestGetQuestionsWithAnswers(t *testing.T) {
 	// test with existing user id and questions, all not answered
 	// generate questions
 	curTime := time.Now()
-	questions := GenerateTestQuestions(30, 1, curTime)
+	questions := helpunittesting.GenerateTestQuestions(30, 1, curTime)
 
 	// generate rows
 	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "creation_date"})
