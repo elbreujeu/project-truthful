@@ -17,6 +17,7 @@ func GetQuestions(userId int, start int, end int, db *sql.DB) ([]models.Question
 	// prints all the rows with their id and text
 	var questions []models.Question
 	for rows.Next() {
+		// TODO : put this in a function
 		var curQuestion models.Question
 		var authorId sql.NullInt64
 		err := rows.Scan(&curQuestion.Id, &curQuestion.Text, &authorId, &curQuestion.IsAuthorAnonymous, &curQuestion.ReceiverId, &curQuestion.CreatedAt)
