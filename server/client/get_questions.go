@@ -2,10 +2,26 @@ package client
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"project_truthful/client/database"
 	"project_truthful/models"
+	"time"
 )
+
+func GenerateTestQuestions(count int, receiverId int, creationTime time.Time) []models.Question {
+	questions := make([]models.Question, count)
+	for i := 0; i < count; i++ {
+		questions[i] = models.Question{
+			Id:                i,
+			Text:              "question" + fmt.Sprintf("%d", i),
+			IsAuthorAnonymous: false,
+			ReceiverId:        receiverId,
+			CreatedAt:         creationTime,
+		}
+	}
+	return questions
+}
 
 func GetQuestions(userId int, start int, count int) ([]models.Question, int, error) {
 	if count < 0 || count > 30 {
@@ -25,5 +41,5 @@ func GetQuestions(userId int, start int, count int) ([]models.Question, int, err
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
-	return questions, 0, nil
+	return questions, http.StatusOK, nil
 }
