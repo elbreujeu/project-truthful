@@ -21,7 +21,7 @@ func register(c *gin.Context) {
 	if err := c.ShouldBindJSON(&infos); err != nil {
 		log.Printf("Error while parsing request body: %s\n", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid request body",
+			"message": "invalid request body",
 			"error":   err.Error(),
 		})
 		return
@@ -30,7 +30,7 @@ func register(c *gin.Context) {
 	if infos.Username == "" || infos.Password == "" || infos.Email == "" || infos.Birthdate == "" {
 		log.Printf("Error while parsing request body: missing fields\n")
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid request body",
+			"message": "invalid request body",
 			"error":   "missing fields",
 		})
 		return
@@ -60,7 +60,7 @@ func login(c *gin.Context) {
 	if err != nil {
 		log.Printf("Error while parsing request body: %s\n", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid request body",
+			"message": "invalid request body",
 			"error":   err.Error(),
 		})
 		return
@@ -69,7 +69,7 @@ func login(c *gin.Context) {
 	if infos.Username == "" || infos.Password == "" {
 		log.Printf("Error while parsing request body: missing fields\n")
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid request body",
+			"message": "invalid request body",
 			"error":   "missing fields",
 		})
 		return
@@ -129,55 +129,42 @@ func getUserProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-// func followUser(w http.ResponseWriter, r *http.Request) {
-// 	log.Printf("Received request to follow user from ip %s\n", r.RemoteAddr)
+func followUser(c *gin.Context) {
+	log.Printf("Received request to follow user from ip %s\n", c.ClientIP())
 
-// 	requesterId, _, err := parseAndVerifyAccessToken(w, r)
-// 	if err != nil {
-// 		return
-// 	}
+	requesterId, _, err := parseAndVerifyAccessToken(c)
+	if err != nil {
+		return
+	}
 
-// 	if r.Body == nil {
-// 		log.Printf("Error while parsing request body: missing fields\n")
-// 		w.WriteHeader(http.StatusBadRequest)
-// 		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "missing fields"}`)
-// 		return
-// 	}
+	var infos models.FollowUserInfos
+	if err := c.ShouldBindJSON(&infos); err != nil {
+		log.Printf("Error while parsing request body: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body", "error": err.Error()})
+		return
+	} else if infos.UserId == 0 {
+		log.Printf("Error while parsing request body: missing fields\n")
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body", "error": "missing fields"})
+		return
+	}
 
-// 	var infos models.FollowUserInfos
-// 	err = json.NewDecoder(r.Body).Decode(&infos)
-// 	if err != nil {
-// 		log.Printf("Error while parsing request body: %s\n", err.Error())
-// 		w.WriteHeader(http.StatusBadRequest)
-// 		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "%s"}`, err.Error())
-// 		return
-// 	} else if infos.UserId == 0 {
-// 		log.Printf("Error while parsing request body: missing fields\n")
-// 		w.WriteHeader(http.StatusBadRequest)
-// 		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "missing fields"}`)
-// 		return
-// 	}
+	var message string
+	if infos.Follow {
+		_, err = client.FollowUser(requesterId, infos.UserId)
+		message = "User followed"
+	} else {
+		_, err = client.UnfollowUser(requesterId, infos.UserId)
+		message = "User unfollowed"
+	}
+	if err != nil {
+		log.Printf("Error while following user: %s\n", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "error while following user", "error": err.Error()})
+		return
+	}
 
-// 	var message string
-// 	var code int
-// 	if infos.Follow {
-// 		code, err = client.FollowUser(requesterId, infos.UserId)
-// 		message = "User followed"
-// 	} else {
-// 		code, err = client.UnfollowUser(requesterId, infos.UserId)
-// 		message = "User unfollowed"
-// 	}
-// 	if err != nil {
-// 		log.Printf("Error while following user: %s\n", err.Error())
-// 		w.WriteHeader(code)
-// 		fmt.Fprintf(w, `{"message": "error while following user", "error": "%s"}`, err.Error())
-// 		return
-// 	}
-
-// 	log.Printf("User %d followed user %d\n", requesterId, infos.UserId)
-// 	w.WriteHeader(http.StatusOK)
-// 	fmt.Fprintf(w, `{"message": "%s"}`, message)
-// }
+	log.Printf("User %d followed user %d\n", requesterId, infos.UserId)
+	c.JSON(http.StatusOK, gin.H{"message": message})
+}
 
 // func askQuestion(w http.ResponseWriter, r *http.Request) {
 // 	log.Printf("Received request to ask question from ip %s\n", r.RemoteAddr)
@@ -198,7 +185,7 @@ func getUserProfile(c *gin.Context) {
 // 	if r.Body == nil {
 // 		log.Printf("Error while parsing request body: missing fields\n")
 // 		w.WriteHeader(http.StatusBadRequest)
-// 		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "missing fields"}`)
+// 		fmt.Fprintf(w, `{"message": "invalid request body", "error": "missing fields"}`)
 // 		return
 // 	}
 
@@ -207,7 +194,7 @@ func getUserProfile(c *gin.Context) {
 // 	if err != nil {
 // 		log.Printf("Error while parsing request body: %s\n", err.Error())
 // 		w.WriteHeader(http.StatusBadRequest)
-// 		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "%s"}`, err.Error())
+// 		fmt.Fprintf(w, `{"message": "invalid request body", "error": "%s"}`, err.Error())
 // 		return
 // 	}
 
@@ -282,7 +269,7 @@ func getUserProfile(c *gin.Context) {
 // 	if err != nil {
 // 		log.Printf("Error while parsing request body: %s\n", err.Error())
 // 		w.WriteHeader(http.StatusBadRequest)
-// 		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "%s"}`, err.Error())
+// 		fmt.Fprintf(w, `{"message": "invalid request body", "error": "%s"}`, err.Error())
 // 		return
 // 	}
 
@@ -312,7 +299,7 @@ func getUserProfile(c *gin.Context) {
 // 	if err != nil {
 // 		log.Printf("Error while parsing request body: %s\n", err.Error())
 // 		w.WriteHeader(http.StatusBadRequest)
-// 		fmt.Fprintf(w, `{"message": "Invalid request body", "error": "%s"}`, err.Error())
+// 		fmt.Fprintf(w, `{"message": "invalid request body", "error": "%s"}`, err.Error())
 // 		return
 // 	}
 
@@ -349,7 +336,7 @@ func SetupRoutes(r *gin.Engine) {
 	r.POST("/login", login)
 	r.GET("/refresh_token", refreshToken)
 	r.GET("/get_user_profile/:user", getUserProfile)
-	// r.POST("/follow_user", followUser)
+	r.POST("/follow_user", followUser)
 	// r.POST("/ask_question", askQuestion)
 	// r.GET("/get_questions", getQuestions)
 	// r.POST("/answer_question", answerQuestion)

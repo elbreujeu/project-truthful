@@ -58,7 +58,7 @@ func TestRegister(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
 	}
-	assert.Equal(t, `{"error":"invalid character '\u003c' looking for beginning of value","message":"Invalid request body"}`, w.Body.String())
+	assert.Equal(t, `{"error":"invalid character '\u003c' looking for beginning of value","message":"invalid request body"}`, w.Body.String())
 
 	// checks with empty username
 	r, err := http.NewRequest("POST", "/register", bytes.NewBuffer([]byte(`{"username": "", "password": "Toto123@", "email_address": "toto@toto.fr", "birthdate": "1990-01-01"}`)))
@@ -70,7 +70,7 @@ func TestRegister(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
 	}
-	assert.Equal(t, `{"error":"missing fields","message":"Invalid request body"}`, w.Body.String())
+	assert.Equal(t, `{"error":"missing fields","message":"invalid request body"}`, w.Body.String())
 
 	// checks with register failure (invalid username)
 	r, err = http.NewRequest("POST", "/register", bytes.NewBuffer([]byte(`{"username": "to", "password": "Toto123@", "email_address": "toto@toto.fr", "birthdate": "1990-01-01"}`)))
@@ -124,7 +124,7 @@ func TestLogin(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
 	}
-	assert.Equal(t, `{"error":"invalid character '\u003c' looking for beginning of value","message":"Invalid request body"}`, w.Body.String())
+	assert.Equal(t, `{"error":"invalid character '\u003c' looking for beginning of value","message":"invalid request body"}`, w.Body.String())
 
 	// checks with empty username
 	r, err := http.NewRequest("POST", "/login", bytes.NewBuffer([]byte(`{"username": "", "password": "Toto123@"}`)))
@@ -136,7 +136,7 @@ func TestLogin(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
 	}
-	assert.Equal(t, `{"error":"missing fields","message":"Invalid request body"}`, w.Body.String())
+	assert.Equal(t, `{"error":"missing fields","message":"invalid request body"}`, w.Body.String())
 
 	var mock sqlmock.Sqlmock
 	database.DB, mock, err = sqlmock.New()
@@ -249,105 +249,105 @@ func TestGetUserProfile(t *testing.T) {
 	assert.Equal(t, `{"id":1,"username":"username","display_name":"display_name","follower_count":1,"following_count":1,"answer_count":1,"answers":null}`, w.Body.String())
 }
 
-// func TestFollowUser(t *testing.T) {
-// 	// With invalid format token
-// 	router := mux.NewRouter()
-// 	SetupRoutes(router)
-// 	SetMiddleware(router)
-// 	r, _ := http.NewRequest("POST", "/follow_user", nil)
-// 	r.Header.Set("Authorization", "invalid_token")
-// 	w := httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusBadRequest {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
-// 	}
-// 	assert.Equal(t, `{"message": "error while parsing token", "error": "missing fields"}`, w.Body.String())
+func TestFollowUser(t *testing.T) {
+	// With invalid format token
+	router := gin.Default()
+	SetupRoutes(router)
+	SetMiddleware(router)
+	r, _ := http.NewRequest("POST", "/follow_user", nil)
+	r.Header.Set("Authorization", "invalid_token")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"error":"missing fields","message":"error while parsing token"}`, w.Body.String())
 
-// 	os.Setenv("IS_TEST", "true")
+	os.Setenv("IS_TEST", "true")
 
-// 	// Test with nil request body
-// 	r, _ = http.NewRequest("POST", "/follow_user", nil)
-// 	r.Header.Set("Authorization", "Bearer 123456789")
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusBadRequest {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
-// 	}
-// 	assert.Equal(t, `{"message": "Invalid request body", "error": "missing fields"}`, w.Body.String())
+	// Test with nil request body
+	r, _ = http.NewRequest("POST", "/follow_user", nil)
+	r.Header.Set("Authorization", "Bearer 123456789")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"error":"invalid request","message":"invalid request body"}`, w.Body.String())
 
-// 	// Test with invalid request body
-// 	requestBody := []byte(`{"username": "toto"}`)
-// 	r, _ = http.NewRequest("POST", "/follow_user", bytes.NewBuffer(requestBody))
-// 	r.Header.Set("Authorization", "Bearer 123456789")
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusBadRequest {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
-// 	}
-// 	assert.Equal(t, `{"message": "Invalid request body", "error": "missing fields"}`, w.Body.String())
+	// Test with invalid request body
+	requestBody := []byte(`{"username": "toto"}`)
+	r, _ = http.NewRequest("POST", "/follow_user", bytes.NewBuffer(requestBody))
+	r.Header.Set("Authorization", "Bearer 123456789")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"error":"missing fields","message":"invalid request body"}`, w.Body.String())
 
-// 	// Test with invalid request body
-// 	requestBody = []byte("<invalid json>")
-// 	r, _ = http.NewRequest("POST", "/follow_user", bytes.NewBuffer(requestBody))
-// 	r.Header.Set("Authorization", "Bearer 123456789")
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusBadRequest {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
-// 	}
-// 	assert.Equal(t, `{"message": "Invalid request body", "error": "invalid character '<' looking for beginning of value"}`, w.Body.String())
+	// Test with invalid request body
+	requestBody = []byte("<invalid json>")
+	r, _ = http.NewRequest("POST", "/follow_user", bytes.NewBuffer(requestBody))
+	r.Header.Set("Authorization", "Bearer 123456789")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"error":"invalid character '\u003c' looking for beginning of value","message":"invalid request body"}`, w.Body.String())
 
-// 	// tests for error when following
-// 	db, mock, err := sqlmock.New()
-// 	if err != nil {
-// 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-// 	}
-// 	defer db.Close()
-// 	database.DB = db
-// 	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(2).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
-// 	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
-// 	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1, 2).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
-// 	mock.ExpectExec("INSERT INTO follow").WillReturnError(errors.New("error"))
-// 	requestBody = []byte(`{"user_id":2, "follow":true}`)
-// 	r, _ = http.NewRequest("POST", "/follow_user", bytes.NewBuffer(requestBody))
-// 	r.Header.Set("Authorization", "Bearer 123456789")
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusInternalServerError {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
-// 	}
-// 	assert.Equal(t, `{"message": "error while following user", "error": "error"}`, w.Body.String())
+	// tests for error when following
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+	database.DB = db
+	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(2).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1, 2).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+	mock.ExpectExec("INSERT INTO follow").WillReturnError(errors.New("error"))
+	requestBody = []byte(`{"user_id":2, "follow":true}`)
+	r, _ = http.NewRequest("POST", "/follow_user", bytes.NewBuffer(requestBody))
+	r.Header.Set("Authorization", "Bearer 123456789")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+	assert.Equal(t, `{"error":"error","message":"error while following user"}`, w.Body.String())
 
-// 	// tests for following success
-// 	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(2).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
-// 	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
-// 	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1, 2).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
-// 	mock.ExpectExec("INSERT INTO follow").WithArgs(1, 2).WillReturnResult(sqlmock.NewResult(1, 1))
-// 	requestBody = []byte(`{"user_id":2, "follow":true}`)
-// 	r, _ = http.NewRequest("POST", "/follow_user", bytes.NewBuffer(requestBody))
-// 	r.Header.Set("Authorization", "Bearer 123456789")
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusOK {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
-// 	}
-// 	assert.Equal(t, `{"message": "User followed"}`, w.Body.String())
+	// tests for following success
+	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(2).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1, 2).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+	mock.ExpectExec("INSERT INTO follow").WithArgs(1, 2).WillReturnResult(sqlmock.NewResult(1, 1))
+	requestBody = []byte(`{"user_id":2, "follow":true}`)
+	r, _ = http.NewRequest("POST", "/follow_user", bytes.NewBuffer(requestBody))
+	r.Header.Set("Authorization", "Bearer 123456789")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
+	}
+	assert.Equal(t, `{"message":"User followed"}`, w.Body.String())
 
-// 	// tests for unfollowing success
-// 	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1, 2).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
-// 	mock.ExpectExec("DELETE FROM follow").WithArgs(1, 2).WillReturnResult(sqlmock.NewResult(1, 1))
-// 	requestBody = []byte(`{"user_id":2, "follow":false}`)
-// 	r, _ = http.NewRequest("POST", "/follow_user", bytes.NewBuffer(requestBody))
-// 	r.Header.Set("Authorization", "Bearer 123456789")
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusOK {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
-// 	}
-// 	assert.Equal(t, `{"message": "User unfollowed"}`, w.Body.String())
+	// tests for unfollowing success
+	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1, 2).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectExec("DELETE FROM follow").WithArgs(1, 2).WillReturnResult(sqlmock.NewResult(1, 1))
+	requestBody = []byte(`{"user_id":2, "follow":false}`)
+	r, _ = http.NewRequest("POST", "/follow_user", bytes.NewBuffer(requestBody))
+	r.Header.Set("Authorization", "Bearer 123456789")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
+	}
+	assert.Equal(t, `{"message":"User unfollowed"}`, w.Body.String())
 
-// 	os.Setenv("IS_TEST", "false")
-// }
+	os.Setenv("IS_TEST", "false")
+}
 
 // func TestAskQuestion(t *testing.T) {
 // 	// With valid format token but invalid token
@@ -370,7 +370,7 @@ func TestGetUserProfile(t *testing.T) {
 // 	if w.Code != http.StatusBadRequest {
 // 		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
 // 	}
-// 	assert.Equal(t, `{"message": "Invalid request body", "error": "missing fields"}`, w.Body.String())
+// 	assert.Equal(t, `{"message": "invalid request body", "error": "missing fields"}`, w.Body.String())
 
 // 	// With invalid body
 // 	body := []byte(`<invalid body>`)
@@ -380,7 +380,7 @@ func TestGetUserProfile(t *testing.T) {
 // 	if w.Code != http.StatusBadRequest {
 // 		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
 // 	}
-// 	assert.Equal(t, `{"message": "Invalid request body", "error": "invalid character '<' looking for beginning of value"}`, w.Body.String())
+// 	assert.Equal(t, `{"message": "invalid request body", "error": "invalid character '<' looking for beginning of value"}`, w.Body.String())
 
 // 	// Success
 // }
