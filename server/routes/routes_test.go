@@ -174,42 +174,43 @@ func TestLogin(t *testing.T) {
 	os.Setenv("IS_TEST", "false")
 }
 
-// func TestRefreshToken(t *testing.T) {
-// 	// With invalid format token
-// 	router := mux.NewRouter()
-// 	SetupRoutes(router)
-// 	SetMiddleware(router)
-// 	r, _ := http.NewRequest("GET", "/refresh_token", nil)
-// 	r.Header.Set("Authorization", "invalid_token")
-// 	w := httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusBadRequest {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
-// 	}
-// 	assert.Equal(t, `{"message": "error while parsing token", "error": "missing fields"}`, w.Body.String())
+func TestRefreshToken(t *testing.T) {
+	router := gin.Default()
+	SetupRoutes(router)
+	SetMiddleware(router)
 
-// 	// With valid format token, but invalid token
-// 	r, _ = http.NewRequest("GET", "/refresh_token", nil)
-// 	r.Header.Set("Authorization", "Bearer 123456789")
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusInternalServerError {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
-// 	}
-// 	assert.Equal(t, `{"message": "error while checking token", "error": "token contains an invalid number of segments"}`, w.Body.String())
+	// With invalid format token
+	r, _ := http.NewRequest("GET", "/refresh_token", nil)
+	r.Header.Set("Authorization", "invalid_token")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"error":"missing fields","message":"error while parsing token"}`, w.Body.String())
 
-// 	// With is_test env variable set to true (token is impossible to check due to the fact that the key is not the same)
-// 	os.Setenv("IS_TEST", "true")
-// 	r, _ = http.NewRequest("GET", "/refresh_token", nil)
-// 	r.Header.Set("Authorization", "Bearer 123456789")
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusOK {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
-// 	}
-// 	assert.Equal(t, `{"message": "Token refreshed", "token": "test"}`, w.Body.String())
-// 	os.Setenv("IS_TEST", "false")
-// }
+	// With valid format token, but invalid token
+	r, _ = http.NewRequest("GET", "/refresh_token", nil)
+	r.Header.Set("Authorization", "Bearer 123456789")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+	assert.Equal(t, `{"error":"token contains an invalid number of segments","message":"error while checking token"}`, w.Body.String())
+
+	// With is_test env variable set to true (token is impossible to check due to the fact that the key is not the same)
+	os.Setenv("IS_TEST", "true")
+	r, _ = http.NewRequest("GET", "/refresh_token", nil)
+	r.Header.Set("Authorization", "Bearer 123456789")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
+	}
+	assert.Equal(t, `{"message":"Token refreshed","token":"test"}`, w.Body.String())
+	os.Setenv("IS_TEST", "false")
+}
 
 // func TestGetUserProfile(t *testing.T) {
 // 	db, mock, err := sqlmock.New()
