@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 )
 
@@ -92,8 +93,8 @@ func RefreshJWT(tokenString string) (string, int, error) {
 	return newToken, http.StatusOK, nil
 }
 
-func ParseAccessToken(r *http.Request) (string, int, error) {
-	accessToken := r.Header.Get("Authorization")
+func ParseAccessToken(c *gin.Context) (string, int, error) {
+	accessToken := c.GetHeader("Authorization")
 	if accessToken == "" || len(accessToken) < 7 || accessToken[:7] != "Bearer " {
 		return "", http.StatusBadRequest, errors.New("missing fields")
 	}

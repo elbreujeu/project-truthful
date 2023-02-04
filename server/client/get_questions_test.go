@@ -1,7 +1,9 @@
-package database
+package client
 
 import (
 	"errors"
+	"net/http"
+	"project_truthful/client/database"
 	"project_truthful/helpunittesting"
 	"testing"
 	"time"
@@ -9,116 +11,86 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 )
 
-func TestAddQuestion(t *testing.T) {
+func TestGetQuestionsFail(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Errorf("Error while creating sqlmock: %s", err.Error())
-	}
-	defer db.Close()
-
-	mock.ExpectExec("INSERT INTO question").WithArgs("question", "ip address", 1).WillReturnResult(sqlmock.NewResult(1, 1))
-	id, err := AddQuestion("question", 0, "ip address", true, 1, db)
-	if mock.ExpectationsWereMet() != nil {
-		t.Errorf("Error while checking expectations: %s", err.Error())
-	}
-	if err != nil {
-		t.Errorf("Error while adding question: %s", err.Error())
-	}
-	if id != 1 {
-		t.Errorf("Id should be 1")
-	}
-
-	mock.ExpectExec("INSERT INTO question").WithArgs("question", 2, "ip address", true, 1).WillReturnResult(sqlmock.NewResult(1, 1))
-	id, err = AddQuestion("question", 2, "ip address", true, 1, db)
-	if mock.ExpectationsWereMet() != nil {
-		t.Errorf("Error while checking expectations: %s", err.Error())
-	}
-	if err != nil {
-		t.Errorf("Error while adding question: %s", err.Error())
-	}
-	if id != 1 {
-		t.Errorf("Id should be 1")
-	}
-
-	mock.ExpectExec("INSERT INTO question").WithArgs("question", 3, "ip address", false, 1).WillReturnError(errors.New("error"))
-	_, err = AddQuestion("question", 3, "ip address", false, 1, db)
-	if mock.ExpectationsWereMet() != nil {
-		t.Errorf("Error while checking expectations: %s", err.Error())
-	}
-	if err == nil {
-		t.Errorf("Error should not be nil")
-	}
-}
-
-func TestGetQuestionReceiverId(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Errorf("Error while creating sqlmock: %s", err.Error())
-	}
-	defer db.Close()
-
-	// Test with an SQL error
-	mock.ExpectQuery("SELECT receiver_id FROM question").WithArgs(1).WillReturnError(errors.New("error for db test"))
-	_, err = GetQuestionReceiverId(1, db)
-	if mock.ExpectationsWereMet() != nil {
-		t.Errorf("Error while checking expectations: %s", err.Error())
-	}
-	if err == nil {
-		t.Errorf("Database error: expected error, got nil")
-	}
-
-	// Test with one row returned
-	mock.ExpectQuery("SELECT receiver_id FROM question").WithArgs(2).WillReturnRows(sqlmock.NewRows([]string{"author_id"}).AddRow(1))
-	receiverId, err := GetQuestionReceiverId(2, db)
-	if mock.ExpectationsWereMet() != nil {
-		t.Errorf("Error while checking expectations: %s", err.Error())
-	}
-	if err != nil {
-		t.Errorf("Database error: expected nil, got %s", err.Error())
-	}
-	if receiverId != 1 {
-		t.Errorf("Database error: expected 1, got %d", receiverId)
-	}
-}
-
-func TestGetQuestions(t *testing.T) {
-	db, mock, err := sqlmock.New()
+	database.DB = db
 	if err != nil {
 		t.Fatalf("Error while creating mock: %s", err.Error())
 	}
 
-	// test for an SQL error
-	mock.ExpectQuery("SELECT").WithArgs(1, 0, 30).WillReturnError(errors.New("error for db test"))
-	_, err = GetQuestions(1, 0, 30, db)
+	// test with not existing user id
+	mock.ExpectQuery("SELECT COUNT").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+	_, status, err := GetQuestions(1, 0, 30)
 	if err == nil {
 		t.Error("Expected error, got nil")
 	}
-	expectErr := mock.ExpectationsWereMet()
-	if expectErr != nil {
-		t.Error("Error while checking expectations")
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if status != http.StatusNotFound {
+		t.Error("Expected status 404, got", status)
 	}
 
-	// test for no rows returned
-	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "creation_date"})
-	mock.ExpectQuery("SELECT").WithArgs(1, 0, 30).WillReturnRows(rows)
-	questions, err := GetQuestions(1, 0, 30, db)
-	if err != nil {
-		t.Errorf("Error while getting questions: %s", err.Error())
+	// test with error while checking user id + too low count and start
+	mock.ExpectQuery("SELECT COUNT").WithArgs(1).WillReturnError(errors.New("error while checking user id"))
+	_, status, err = GetQuestions(1, -1, -1)
+	if err == nil {
+		t.Error("Expected error, got nil")
 	}
-	if len(questions) != 0 {
-		t.Errorf("Expected 0 questions, got %d", len(questions))
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
 	}
-	expectErr = mock.ExpectationsWereMet()
-	if expectErr != nil {
-		t.Error("Error while checking expectations")
+	if status != http.StatusInternalServerError {
+		t.Error("Expected status 500, got", status)
+	}
+
+	// test with existing user id but error while getting questions + too high count
+	mock.ExpectQuery("SELECT COUNT").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+	mock.ExpectQuery("SELECT").WithArgs(1, 0, 30).WillReturnError(errors.New("error while getting questions"))
+	_, status, err = GetQuestions(1, 0, 50)
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if status != http.StatusInternalServerError {
+		t.Error("Expected status 500, got", status)
 	}
 }
 
-func TestGetQuestionsMultipleRows(t *testing.T) {
+func TestGetQuestionsNoQuestions(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("Error while creating mock: %s", err.Error())
 	}
+	database.DB = db
+	// test with existing user id and nil questions
+	mock.ExpectQuery("SELECT COUNT").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+	mock.ExpectQuery("SELECT").WithArgs(1, 0, 30).WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "text", "created_at", "updated_at"}))
+	questions, status, err := GetQuestions(1, 0, 30)
+	if err != nil {
+		t.Error("Expected nil, got", err)
+	}
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if status != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, status)
+	}
+	if len(questions) != 0 {
+		t.Errorf("Expected number of questions to be %d, but got %d", 0, len(questions))
+	}
+}
+
+func TestGetQuestionsNoAnswers(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Error while creating mock: %s", err.Error())
+	}
+	database.DB = db
+
+	// test with existing user id and questions, all not answered
 	// generate questions
 	curTime := time.Now()
 	questions := helpunittesting.GenerateTestQuestions(30, 1, curTime)
@@ -128,19 +100,25 @@ func TestGetQuestionsMultipleRows(t *testing.T) {
 	for _, question := range questions {
 		rows.AddRow(question.Id, question.Text, question.AuthorId, question.IsAuthorAnonymous, question.ReceiverId, question.CreatedAt)
 	}
+	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
 	mock.ExpectQuery("SELECT").WithArgs(1, 0, 30).WillReturnRows(rows)
 	// expects all the queries for getting answers
 	for _, question := range questions {
 		mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(question.Id).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
 	}
 
-	returnedQuestions, err := GetQuestions(1, 0, 30, db)
+	returnedQuestions, status, err := GetQuestions(1, 0, 30)
 	if err != nil {
 		t.Error("Expected nil, got", err)
 	}
 	if mock.ExpectationsWereMet() != nil {
 		t.Errorf("Error while checking expectations: %s", err.Error())
 	}
+	if status != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, status)
+	}
+
+	// checks if the questions are correctly returned
 	for i, q := range returnedQuestions {
 		if q.Id != questions[i].Id {
 			t.Errorf("Expected Id to be %d, but got %d", questions[i].Id, q.Id)
@@ -163,11 +141,14 @@ func TestGetQuestionsMultipleRows(t *testing.T) {
 	}
 }
 
-func TestGetQuestionsMultipleRowsAndAnswers(t *testing.T) {
+func TestGetQuestionsWithAnswers(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("Error while creating mock: %s", err.Error())
 	}
+	database.DB = db
+
+	// test with existing user id and questions, all not answered
 	// generate questions
 	curTime := time.Now()
 	questions := helpunittesting.GenerateTestQuestions(30, 1, curTime)
@@ -177,6 +158,7 @@ func TestGetQuestionsMultipleRowsAndAnswers(t *testing.T) {
 	for _, question := range questions {
 		rows.AddRow(question.Id, question.Text, question.AuthorId, question.IsAuthorAnonymous, question.ReceiverId, question.CreatedAt)
 	}
+	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
 	mock.ExpectQuery("SELECT").WithArgs(1, 0, 30).WillReturnRows(rows)
 	// expects all the queries for getting answers. Every query will return no answers except the 25th one
 	for i, question := range questions {
@@ -187,13 +169,18 @@ func TestGetQuestionsMultipleRowsAndAnswers(t *testing.T) {
 		}
 	}
 
-	returnedQuestions, err := GetQuestions(1, 0, 30, db)
+	returnedQuestions, status, err := GetQuestions(1, 0, 30)
 	if err != nil {
 		t.Error("Expected nil, got", err)
 	}
 	if mock.ExpectationsWereMet() != nil {
 		t.Errorf("Error while checking expectations: %s", err.Error())
 	}
+	if status != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, status)
+	}
+
+	// checks if the questions are correctly returned until the 25th one
 	for i, q := range returnedQuestions {
 		if i >= 25 {
 			i += 1

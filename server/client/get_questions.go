@@ -25,5 +25,5 @@ func GetQuestions(userId int, start int, count int) ([]models.Question, int, err
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
-	return questions, 0, nil
+	return questions, http.StatusOK, nil
 }

@@ -2,33 +2,47 @@ package token
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 )
 
 func TestParseAccessToken(t *testing.T) {
-	// creates a new request with an empty header
-	r, err := http.NewRequest("GET", "http://localhost:8080", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req, _ := http.NewRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
 
-	_, _, err = ParseAccessToken(r)
+	// Test missing header
+	_, status, err := ParseAccessToken(c)
 	if err == nil {
-		t.Errorf("no error while parsing nil request")
+		t.Errorf("Expected error when header is missing, got nil")
+	}
+	if status != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, status)
 	}
 
-	r.Header.Set("Authorization", "test")
-	_, _, err = ParseAccessToken(r)
+	// Test header with incorrect format
+	req.Header.Set("Authorization", "incorrect format")
+	_, status, err = ParseAccessToken(c)
 	if err == nil {
-		t.Errorf("no error while parsing invalid token")
+		t.Errorf("Expected error when header has incorrect format, got nil")
+	}
+	if status != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, status)
 	}
 
-	r.Header.Set("Authorization", "Bearer test")
-	token, _, err := ParseAccessToken(r)
+	// Test valid header
+	req.Header.Set("Authorization", "Bearer token")
+	token, status, err := ParseAccessToken(c)
 	if err != nil {
-		t.Errorf("error while parsing valid token")
+		t.Errorf("Unexpected error: %v", err)
 	}
-	if token != "test" {
-		t.Errorf("invalid token parsed")
+	if status != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, status)
+	}
+	if token != "token" {
+		t.Errorf("Expected token %s, got %s", "token", token)
 	}
 }
