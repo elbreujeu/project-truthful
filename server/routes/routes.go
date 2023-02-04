@@ -47,9 +47,19 @@ func register(c *gin.Context) {
 		return
 	}
 	log.Printf("User created with id %d\n", id)
+	token, err := token.GenerateJWT(int(id))
+	if err != nil {
+		log.Printf("Error while generating token: %s\n", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "error while generating token after registration",
+			"error":   err.Error(),
+		})
+		return
+	}
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "User created",
 		"id":      id,
+		"token":   token,
 	})
 }
 

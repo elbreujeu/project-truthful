@@ -127,7 +127,7 @@ func TestRegister(t *testing.T) {
 	if w.Code != http.StatusCreated {
 		t.Errorf("Expected status code %d, got %d", http.StatusCreated, w.Code)
 	}
-	assert.Equal(t, `{"id":1,"message":"User created"}`, w.Body.String())
+	assert.Equal(t, `{"id":1,"message":"User created","token":"test"}`, w.Body.String())
 	os.Setenv("IS_TEST", "false")
 }
 
