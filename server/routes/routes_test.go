@@ -3,6 +3,7 @@ package routes
 import (
 	"bytes"
 	"database/sql"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -212,41 +213,41 @@ func TestRefreshToken(t *testing.T) {
 	os.Setenv("IS_TEST", "false")
 }
 
-// func TestGetUserProfile(t *testing.T) {
-// 	db, mock, err := sqlmock.New()
-// 	if err != nil {
-// 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-// 	}
-// 	defer db.Close()
-// 	database.DB = db
-// 	router := mux.NewRouter()
-// 	SetupRoutes(router)
-// 	SetMiddleware(router)
-// 	// tests for error when getting user profile
-// 	mock.ExpectQuery("SELECT (.+) FROM user").WithArgs("toto").WillReturnError(errors.New("error"))
-// 	r, _ := http.NewRequest("GET", "/get_user_profile/toto", nil)
-// 	w := httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusInternalServerError {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
-// 	}
-// 	assert.Equal(t, `{"message": "error while getting user", "error": "error"}`, w.Body.String())
+func TestGetUserProfile(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+	database.DB = db
+	router := gin.Default()
+	SetupRoutes(router)
+	SetMiddleware(router)
+	// tests for error when getting user profile
+	mock.ExpectQuery("SELECT (.+) FROM user").WithArgs("toto").WillReturnError(errors.New("error"))
+	r, _ := http.NewRequest("GET", "/get_user_profile/toto", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+	assert.Equal(t, `{"error":"error","message":"error while getting user"}`, w.Body.String())
 
-// 	// tests for success
-// 	rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
-// 	mock.ExpectQuery("SELECT id FROM user WHERE username = \\?").WithArgs("username").WillReturnRows(rows)
-// 	r, _ = http.NewRequest("GET", "/get_user_profile/username", nil)
-// 	mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"username", "display_name"}).AddRow("username", "display_name"))
-// 	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
-// 	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
-// 	mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
-// 	w = httptest.NewRecorder()
-// 	router.ServeHTTP(w, r)
-// 	if w.Code != http.StatusOK {
-// 		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
-// 	}
-// 	assert.Equal(t, `{"id":1,"username":"username","display_name":"display_name","follower_count":1,"following_count":1,"answer_count":1,"answers":null}`+"\n", w.Body.String())
-// }
+	// tests for success
+	rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
+	mock.ExpectQuery("SELECT id FROM user WHERE username = \\?").WithArgs("username").WillReturnRows(rows)
+	r, _ = http.NewRequest("GET", "/get_user_profile/username", nil)
+	mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"username", "display_name"}).AddRow("username", "display_name"))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
+	}
+	assert.Equal(t, `{"id":1,"username":"username","display_name":"display_name","follower_count":1,"following_count":1,"answer_count":1,"answers":null}`, w.Body.String())
+}
 
 // func TestFollowUser(t *testing.T) {
 // 	// With invalid format token

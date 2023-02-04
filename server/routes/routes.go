@@ -111,29 +111,23 @@ func refreshToken(c *gin.Context) {
 	c.JSON(code, gin.H{"message": "Token refreshed", "token": newToken})
 }
 
-// func getUserProfile(w http.ResponseWriter, r *http.Request) {
-// 	log.Printf("Received request to get user from ip %s\n", r.RemoteAddr)
+func getUserProfile(c *gin.Context) {
+	log.Printf("Received request to get user from ip %s\n", c.ClientIP())
 
-// 	vars := mux.Vars(r)
-// 	username := vars["user"]
+	username := c.Param("user")
 
-// 	user, code, err := client.GetUserProfile(username)
-// 	if err != nil {
-// 		log.Printf("Error while getting user: %s\n", err.Error())
-// 		w.WriteHeader(code)
-// 		fmt.Fprintf(w, `{"message": "error while getting user", "error": "%s"}`, err.Error())
-// 		return
-// 	}
-// 	log.Printf("User %s found\n", username)
-// 	w.WriteHeader(http.StatusOK)
-// 	err = json.NewEncoder(w).Encode(user)
-// 	if err != nil {
-// 		log.Printf("Error while encoding user: %s\n", err.Error())
-// 		w.WriteHeader(http.StatusInternalServerError)
-// 		fmt.Fprintf(w, `{"message": "error while encoding user", "error": "%s"}`, err.Error())
-// 		return
-// 	}
-// }
+	user, code, err := client.GetUserProfile(username)
+	if err != nil {
+		log.Printf("Error while getting user: %s\n", err.Error())
+		c.JSON(code, gin.H{
+			"message": "error while getting user",
+			"error":   err.Error(),
+		})
+		return
+	}
+	log.Printf("User %s found\n", username)
+	c.JSON(http.StatusOK, user)
+}
 
 // func followUser(w http.ResponseWriter, r *http.Request) {
 // 	log.Printf("Received request to follow user from ip %s\n", r.RemoteAddr)
@@ -354,7 +348,7 @@ func SetupRoutes(r *gin.Engine) {
 	r.POST("/register", register)
 	r.POST("/login", login)
 	r.GET("/refresh_token", refreshToken)
-	// r.GET("/get_user_profile/:user", getUserProfile)
+	r.GET("/get_user_profile/:user", getUserProfile)
 	// r.POST("/follow_user", followUser)
 	// r.POST("/ask_question", askQuestion)
 	// r.GET("/get_questions", getQuestions)
