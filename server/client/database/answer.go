@@ -70,6 +70,7 @@ func getAnswers(id int, count int, start int, db *sql.DB) ([]models.Answer, erro
 	defer rows.Close()
 	var answers []models.Answer
 	for rows.Next() {
+		//TODO: Put this in a function
 		var answer models.Answer
 		var questionId int
 		err := rows.Scan(&answer.Id, &questionId, &answer.AnswerText, &answer.CreatedAt)
