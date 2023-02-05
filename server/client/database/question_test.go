@@ -101,8 +101,20 @@ func TestGetQuestions(t *testing.T) {
 		t.Error("Error while checking expectations")
 	}
 
+	// test for error when scanning rows
+	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"}).AddRow(55, 55, 55, 55, 55, 55)
+	mock.ExpectQuery("SELECT").WithArgs(1, 0, 30).WillReturnRows(rows)
+	_, err = GetQuestions(1, 0, 30, db)
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+	expectErr = mock.ExpectationsWereMet()
+	if expectErr != nil {
+		t.Error("Error while checking expectations")
+	}
+
 	// test for no rows returned
-	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"})
+	rows = sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"})
 	mock.ExpectQuery("SELECT").WithArgs(1, 0, 30).WillReturnRows(rows)
 	questions, err := GetQuestions(1, 0, 30, db)
 	if err != nil {
@@ -112,6 +124,30 @@ func TestGetQuestions(t *testing.T) {
 		t.Errorf("Expected 0 questions, got %d", len(questions))
 	}
 	expectErr = mock.ExpectationsWereMet()
+	if expectErr != nil {
+		t.Error("Error while checking expectations")
+	}
+}
+
+func TestGetQuestionsError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Error while creating mock: %s", err.Error())
+	}
+	creationDate := time.Now()
+	questions := helpunittesting.GenerateTestQuestions(3, 1, creationDate)
+	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"})
+	for _, question := range questions {
+		rows.AddRow(question.Id, question.Text, question.Author.Id, question.IsAuthorAnonymous, question.ReceiverId, question.CreatedAt)
+	}
+	mock.ExpectQuery("SELECT").WithArgs(1, 0, 30).WillReturnRows(rows)
+	// expects all the queries for getting answers
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(questions[0].Id).WillReturnError(errors.New("error for db test"))
+	_, err = GetQuestions(1, 0, 30, db)
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
+	expectErr := mock.ExpectationsWereMet()
 	if expectErr != nil {
 		t.Error("Error while checking expectations")
 	}
