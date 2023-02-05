@@ -61,7 +61,6 @@ func MarkAnswerAsDeleted(answerId int, db *sql.DB) error {
 }
 
 func getAnswers(id int, count int, start int, db *sql.DB) ([]models.Answer, error) {
-	log.Printf("Getting answers for id %d, count %d, start %d\n", id, count, start)
 	rows, err := db.Query("SELECT id, question_id, text, created_at FROM answer WHERE user_id = ? AND has_been_deleted = 0 ORDER BY created_at DESC LIMIT ?, ?", id, start, count+start)
 	if err != nil {
 		log.Printf("Error getting answers for id %d, %v\n", id, err)
