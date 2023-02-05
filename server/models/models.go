@@ -16,27 +16,30 @@ type LoginInfos struct {
 	Password string `json:"password"`
 }
 
-type UserPreviewInfos struct {
-	Id          int    `json:"id"`
+type UserPreview struct {
+	Id          int64  `json:"id"`
 	Username    string `json:"username"`
 	DisplayName string `json:"display_name"`
 }
 
 type Question struct {
-	Id                int       `json:"id"`
-	Text              string    `json:"text"`
-	AuthorId          int64     `json:"author_id"`
-	IsAuthorAnonymous bool      `json:"is_author_anonymous"`
-	ReceiverId        int       `json:"receiver_id"`
-	CreatedAt         time.Time `json:"created_at"`
+	Id                int         `json:"id"`
+	Text              string      `json:"text"`
+	IsAuthorAnonymous bool        `json:"is_author_anonymous"`
+	Author            UserPreview `json:"author"`
+	ReceiverId        int         `json:"receiver_id"`
+	CreatedAt         time.Time   `json:"created_at"`
 }
 
 type Answer struct {
-	Author       UserPreviewInfos `json:"author"`
-	QuestionText string           `json:"question_text"`
-	AnswerText   string           `json:"answer_text"`
-	AnswerDate   string           `json:"answer_date"`
-	LikeCount    int              `json:"like_count"`
+	Id                int         `json:"id"`
+	IsAuthorAnonymous bool        `json:"is_author_anonymous"`
+	Author            UserPreview `json:"author"`
+	QuestionText      string      `json:"question_text"`
+	AnswerText        string      `json:"answer_text"`
+	AnswerDate        string      `json:"answer_date"`
+	CreatedAt         time.Time   `json:"date_answered"`
+	LikeCount         int         `json:"like_count"`
 }
 
 type UserProfileInfos struct {

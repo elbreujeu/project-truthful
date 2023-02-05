@@ -32,3 +32,13 @@ func AddLike(userId int, postId int, db *sql.DB) error {
 	}
 	return nil
 }
+
+func GetLikeCountForAnswer(answerId int, db *sql.DB) (int, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM answer_like WHERE answer_id = ?", answerId).Scan(&count)
+	if err != nil {
+		log.Printf("Error getting like count for answer %d, %v\n", answerId, err)
+		return 0, err
+	}
+	return count, nil
+}

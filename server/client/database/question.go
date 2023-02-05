@@ -8,7 +8,7 @@ import (
 
 func GetQuestions(userId int, start int, end int, db *sql.DB) ([]models.Question, error) {
 	//selects all questions in database where receiver_id = userId
-	rows, err := db.Query("SELECT id, text, author_id, is_author_anonymous, receiver_id, creation_date FROM question WHERE receiver_id = ? ORDER BY creation_date DESC LIMIT ?, ?", userId, start, end)
+	rows, err := db.Query("SELECT id, text, author_id, is_author_anonymous, receiver_id, created_at FROM question WHERE receiver_id = ? ORDER BY created_at DESC LIMIT ?, ?", userId, start, end)
 	if err != nil {
 		log.Printf("Error getting questions for user %d, %v\n", userId, err)
 		return nil, err
@@ -25,19 +25,27 @@ func GetQuestions(userId int, start int, end int, db *sql.DB) ([]models.Question
 			log.Printf("Error scanning question for user %d, %v\n", userId, err)
 			return nil, err
 		}
-		if authorId.Valid {
-			curQuestion.AuthorId = authorId.Int64
-		} else {
-			curQuestion.AuthorId = 0
-		}
 		hasBeenAnswered, err := HasQuestionBeenAnswered(curQuestion.Id, db)
 		if err != nil {
 			log.Printf("Error checking if question %d has been answered, %v\n", curQuestion.Id, err)
 			return nil, err
 		}
-		if !hasBeenAnswered {
-			questions = append(questions, curQuestion)
+		if hasBeenAnswered {
+			continue
 		}
+		if curQuestion.IsAuthorAnonymous || !authorId.Valid {
+			curQuestion.Author = models.UserPreview{}
+		} else {
+			curQuestion.Author.Id = authorId.Int64
+			authorUsername, authorDisplayName, err := GetUsernameAndDisplayName(int(curQuestion.Author.Id), db)
+			if err != nil {
+				log.Printf("Error getting author username and display name for question %d, %v\n", curQuestion.Id, err)
+				return nil, err
+			}
+			curQuestion.Author.Username = authorUsername
+			curQuestion.Author.DisplayName = authorDisplayName
+		}
+		questions = append(questions, curQuestion)
 	}
 	return questions, nil
 }
@@ -74,4 +82,29 @@ func AddQuestion(question string, authorId int, authorIpAddress string, isAuthor
 		return 0, err
 	}
 	return id, nil
+}
+
+func GetQuestionById(questionId int, db *sql.DB) (models.Question, error) {
+	var question models.Question
+	var authorId sql.NullInt64
+	err := db.QueryRow("SELECT id, text, author_id, is_author_anonymous, receiver_id, created_at FROM question WHERE id = ?", questionId).Scan(&question.Id, &question.Text, &authorId, &question.IsAuthorAnonymous, &question.ReceiverId, &question.CreatedAt)
+	if err != nil && err != sql.ErrNoRows {
+		log.Printf("Error getting question %d, %v\n", questionId, err)
+		return models.Question{}, err
+	} else if err == sql.ErrNoRows {
+		return models.Question{}, err
+	}
+	if question.IsAuthorAnonymous || !authorId.Valid {
+		question.Author = models.UserPreview{}
+	} else {
+		question.Author.Id = authorId.Int64
+		authorUsername, authorDisplayName, err := GetUsernameAndDisplayName(int(question.Author.Id), db)
+		if err != nil {
+			log.Printf("Error getting author username and display name for question %d, %v\n", question.Id, err)
+			return models.Question{}, err
+		}
+		question.Author.Username = authorUsername
+		question.Author.DisplayName = authorDisplayName
+	}
+	return question, nil
 }

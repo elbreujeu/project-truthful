@@ -127,7 +127,30 @@ func getUserProfile(c *gin.Context) {
 
 	username := c.Param("user")
 
-	user, code, err := client.GetUserProfile(username)
+	// parses 2 query parameters, "count" and "start"
+	countStr := c.Query("count")
+	startStr := c.Query("start")
+
+	count, err := basicfuncs.ConvertQueryParameterToInt(countStr, 10)
+	if err != nil {
+		log.Printf("Error while parsing query parameter: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "error while parsing query parameter",
+			"error":   err.Error(),
+		})
+		return
+	}
+	start, err := basicfuncs.ConvertQueryParameterToInt(startStr, 0)
+	if err != nil {
+		log.Printf("Error while parsing query parameter: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "error while parsing query parameter",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	user, code, err := client.GetUserProfile(username, count, start)
 	if err != nil {
 		log.Printf("Error while getting user: %s\n", err.Error())
 		c.JSON(code, gin.H{
