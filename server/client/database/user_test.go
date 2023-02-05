@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"errors"
 	"testing"
 
@@ -221,5 +222,42 @@ func TestCheckUserIdExists(t *testing.T) {
 	}
 	if err == nil {
 		t.Errorf("Error should not be nil")
+	}
+}
+
+func TestGetUsernameAndDisplayName(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	rows := sqlmock.NewRows([]string{"username", "display_name"}).AddRow("john", "John Doe")
+	mock.ExpectQuery("SELECT username, display_name FROM user WHERE id = \\?").WithArgs(1).WillReturnRows(rows)
+
+	username, displayName, err := GetUsernameAndDisplayName(1, db)
+	if err != nil {
+		t.Errorf("error was not expected while getting username and display name: %s", err)
+	}
+	if username != "john" {
+		t.Errorf("unexpected username: %s", username)
+	}
+	if displayName != "John Doe" {
+		t.Errorf("unexpected display name: %s", displayName)
+	}
+}
+
+func TestGetUsernameAndDisplayNameError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	mock.ExpectQuery("SELECT username, display_name FROM user WHERE id = \\?").WithArgs(1).WillReturnError(sql.ErrNoRows)
+
+	_, _, err = GetUsernameAndDisplayName(1, db)
+	if err == nil {
+		t.Errorf("error was expected while getting username and display name, but got nil")
 	}
 }

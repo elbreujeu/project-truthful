@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -104,5 +105,49 @@ func TestRemoveLike(t *testing.T) {
 	}
 	if err != nil {
 		t.Errorf("Database error: expected nil, got %s", err.Error())
+	}
+}
+
+func TestGetLikeCountForAnswer(t *testing.T) {
+	// set up a mock database for testing
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	// test case: answer with likes
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(5))
+	count, err := GetLikeCountForAnswer(1, db)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if count != 5 {
+		t.Errorf("expected count to be 5, but got %d", count)
+	}
+
+	// test case: answer with no likes
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(2).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+	count, err = GetLikeCountForAnswer(2, db)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("expected count to be 0, but got %d", count)
+	}
+
+	// test case: error
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(3).WillReturnError(fmt.Errorf("error getting like count"))
+	count, err = GetLikeCountForAnswer(3, db)
+	if err == nil {
+		t.Errorf("expected error, but got nil")
+	}
+	if count != 0 {
+		t.Errorf("expected count to be 0, but got %d", count)
+	}
+
+	// make sure expectations were met
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }

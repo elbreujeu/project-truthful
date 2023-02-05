@@ -2,6 +2,7 @@ package client
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"project_truthful/client/database"
 	"project_truthful/helpunittesting"
@@ -96,15 +97,16 @@ func TestGetQuestionsNoAnswers(t *testing.T) {
 	questions := helpunittesting.GenerateTestQuestions(30, 1, curTime)
 
 	// generate rows
-	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "creation_date"})
+	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"})
 	for _, question := range questions {
-		rows.AddRow(question.Id, question.Text, question.AuthorId, question.IsAuthorAnonymous, question.ReceiverId, question.CreatedAt)
+		rows.AddRow(question.Id, question.Text, question.Author.Id, question.IsAuthorAnonymous, question.ReceiverId, question.CreatedAt)
 	}
 	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
 	mock.ExpectQuery("SELECT").WithArgs(1, 0, 30).WillReturnRows(rows)
 	// expects all the queries for getting answers
-	for _, question := range questions {
+	for i, question := range questions {
 		mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(question.Id).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+		mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(question.Author.Id).WillReturnRows(sqlmock.NewRows([]string{"username", "display_name"}).AddRow("username"+fmt.Sprintf("%d", i), "display_name"+fmt.Sprintf("%d", i)))
 	}
 
 	returnedQuestions, status, err := GetQuestions(1, 0, 30)
@@ -126,8 +128,14 @@ func TestGetQuestionsNoAnswers(t *testing.T) {
 		if q.Text != questions[i].Text {
 			t.Errorf("Expected Text to be %s, but got %s", questions[i].Text, q.Text)
 		}
-		if q.AuthorId != questions[i].AuthorId {
-			t.Errorf("Expected AuthorId to be %d, but got %d", questions[i].AuthorId, q.AuthorId)
+		if q.Author.Id != questions[i].Author.Id {
+			t.Errorf("Expected AuthorId to be %d, but got %d", questions[i].Author.Id, q.Author.Id)
+		}
+		if q.Author.Username != questions[i].Author.Username {
+			t.Errorf("Expected AuthorUsername to be %s, but got %s", questions[i].Author.Username, q.Author.Username)
+		}
+		if q.Author.DisplayName != questions[i].Author.DisplayName {
+			t.Errorf("Expected AuthorDisplayName to be %s, but got %s", questions[i].Author.DisplayName, q.Author.DisplayName)
 		}
 		if q.IsAuthorAnonymous != questions[i].IsAuthorAnonymous {
 			t.Errorf("Expected IsAuthorAnonymous to be %t, but got %t", questions[i].IsAuthorAnonymous, q.IsAuthorAnonymous)
@@ -154,9 +162,9 @@ func TestGetQuestionsWithAnswers(t *testing.T) {
 	questions := helpunittesting.GenerateTestQuestions(30, 1, curTime)
 
 	// generate rows
-	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "creation_date"})
+	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"})
 	for _, question := range questions {
-		rows.AddRow(question.Id, question.Text, question.AuthorId, question.IsAuthorAnonymous, question.ReceiverId, question.CreatedAt)
+		rows.AddRow(question.Id, question.Text, question.Author.Id, question.IsAuthorAnonymous, question.ReceiverId, question.CreatedAt)
 	}
 	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
 	mock.ExpectQuery("SELECT").WithArgs(1, 0, 30).WillReturnRows(rows)
@@ -166,6 +174,7 @@ func TestGetQuestionsWithAnswers(t *testing.T) {
 			mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(question.Id).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
 		} else {
 			mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(question.Id).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+			mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(question.Author.Id).WillReturnRows(sqlmock.NewRows([]string{"username", "display_name"}).AddRow("username"+fmt.Sprintf("%d", i), "display_name"+fmt.Sprintf("%d", i)))
 		}
 	}
 
@@ -191,8 +200,14 @@ func TestGetQuestionsWithAnswers(t *testing.T) {
 		if q.Text != questions[i].Text {
 			t.Errorf("Expected Text to be %s, but got %s", questions[i].Text, q.Text)
 		}
-		if q.AuthorId != questions[i].AuthorId {
-			t.Errorf("Expected AuthorId to be %d, but got %d", questions[i].AuthorId, q.AuthorId)
+		if q.Author.Id != questions[i].Author.Id {
+			t.Errorf("Expected AuthorId to be %d, but got %d", questions[i].Author.Id, q.Author.Id)
+		}
+		if q.Author.Username != questions[i].Author.Username {
+			t.Errorf("Expected AuthorUsername to be %s, but got %s", questions[i].Author.Username, q.Author.Username)
+		}
+		if q.Author.DisplayName != questions[i].Author.DisplayName {
+			t.Errorf("Expected AuthorDisplayName to be %s, but got %s", questions[i].Author.DisplayName, q.Author.DisplayName)
 		}
 		if q.IsAuthorAnonymous != questions[i].IsAuthorAnonymous {
 			t.Errorf("Expected IsAuthorAnonymous to be %t, but got %t", questions[i].IsAuthorAnonymous, q.IsAuthorAnonymous)
