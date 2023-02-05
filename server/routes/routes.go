@@ -319,6 +319,32 @@ func likeAnswer(c *gin.Context) {
 	}
 }
 
+func deleteAnswer(c *gin.Context) {
+	log.Printf("Received request to delete answer from ip %s\n", c.ClientIP())
+
+	requesterId, _, err := parseAndVerifyAccessToken(c)
+	if err != nil {
+		return
+	}
+
+	var infos models.DeleteAnswerInfos
+	err = c.ShouldBindJSON(&infos)
+	if err != nil {
+		log.Printf("Error while parsing request body: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "error while parsing request body", "error": err.Error()})
+		return
+	}
+
+	code, err := client.MarkAnswerAsDeleted(requesterId, infos.AnswerId)
+	if err != nil {
+		log.Printf("Error while deleting answer: %s\n", err.Error())
+		c.JSON(code, gin.H{"message": "error while deleting answer", "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "answer deleted"})
+}
+
 func SetupRoutes(r *gin.Engine) {
 	r.GET("/hello_world", helloWorld)
 	r.POST("/register", register)
@@ -330,4 +356,5 @@ func SetupRoutes(r *gin.Engine) {
 	r.GET("/get_questions", getQuestions)
 	r.POST("/answer_question", answerQuestion)
 	r.POST("/like_answer", likeAnswer)
+	r.POST("/delete_answer", deleteAnswer)
 }

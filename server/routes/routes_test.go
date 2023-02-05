@@ -732,3 +732,70 @@ func TestUnlikeAnswerSuccess(t *testing.T) {
 
 	os.Setenv("IS_TEST", "false")
 }
+
+func TestDeleteAnswer(t *testing.T) {
+	// With valid format token but invalid token
+	router := gin.Default()
+	SetupRoutes(router)
+	SetMiddleware(router)
+	r, _ := http.NewRequest("POST", "/delete_answer", nil)
+	r.Header.Set("Authorization", "Bearer invalid_token")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+	assert.Equal(t, `{"error":"token contains an invalid number of segments","message":"error while checking token"}`, w.Body.String())
+
+	os.Setenv("IS_TEST", "true")
+
+	requestBody := bytes.NewBuffer([]byte(`<invalid json>`))
+	r, _ = http.NewRequest("POST", "/delete_answer", requestBody)
+	r.Header.Set("Authorization", "Bearer valid_token")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"error":"invalid character '\u003c' looking for beginning of value","message":"error while parsing request body"}`, w.Body.String())
+
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+	database.DB = db
+
+	// Test for error when marking answer as deleted
+	mock.ExpectQuery("SELECT user_id FROM answer").WithArgs(1).WillReturnError(errors.New("error"))
+	requestBody = bytes.NewBuffer([]byte(`{"answer_id": 1, "like": false}`))
+	r, _ = http.NewRequest("POST", "/delete_answer", requestBody)
+	r.Header.Set("Authorization", "Bearer valid_token")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+	assert.Equal(t, `{"error":"error","message":"error while deleting answer"}`, w.Body.String())
+
+	// Test for successfully when marking answer as deleted
+	mock.ExpectQuery("SELECT user_id FROM answer").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"user_id"}).AddRow(1))
+	mock.ExpectExec("UPDATE answer").WithArgs(1).WillReturnResult(sqlmock.NewResult(1, 1))
+	requestBody = bytes.NewBuffer([]byte(`{"answer_id": 1, "like": false}`))
+	r, _ = http.NewRequest("POST", "/delete_answer", requestBody)
+	r.Header.Set("Authorization", "Bearer valid_token")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
+	}
+	assert.Equal(t, `{"message":"answer deleted"}`, w.Body.String())
+
+	os.Setenv("IS_TEST", "false")
+}

@@ -158,3 +158,64 @@ func TestAnswerQuestionSuccess(t *testing.T) {
 		t.Errorf("Wrong answer id: expected 1, got %d", answerId)
 	}
 }
+
+func TestMarkAnswerAsDeleted(t *testing.T) {
+	var mock sqlmock.Sqlmock
+	var err error
+	database.DB, mock, err = sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating sqlmock: %s", err.Error())
+	}
+
+	// check with answer id not found
+	mock.ExpectQuery("SELECT user_id FROM answer").WithArgs(1).WillReturnError(sql.ErrNoRows)
+	_, err = MarkAnswerAsDeleted(1, 1)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err == nil || err.Error() != "answer not found" {
+		t.Errorf("Expected error, got nil")
+	}
+
+	// check with error while checking answer id
+	mock.ExpectQuery("SELECT user_id FROM answer").WithArgs(2).WillReturnError(errors.New("test error"))
+	_, err = MarkAnswerAsDeleted(2, 2)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err == nil || err.Error() != "test error" {
+		t.Errorf("Expected error, got nil")
+	}
+
+	// check with answer id found but user id not matching
+	mock.ExpectQuery("SELECT user_id FROM answer").WithArgs(3).WillReturnRows(sqlmock.NewRows([]string{"user_id"}).AddRow(3))
+	_, err = MarkAnswerAsDeleted(2, 3)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err == nil || err.Error() != "user is not the author of the answer" {
+		t.Errorf("Expected error, got nil")
+	}
+
+	// test when error while updating answer
+	mock.ExpectQuery("SELECT user_id FROM answer").WithArgs(5).WillReturnRows(sqlmock.NewRows([]string{"user_id"}).AddRow(5))
+	mock.ExpectExec("UPDATE answer").WithArgs(5).WillReturnError(errors.New("test error"))
+	_, err = MarkAnswerAsDeleted(5, 5)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err == nil || err.Error() != "test error" {
+		t.Errorf("Expected error, got nil")
+	}
+
+	// check with answer id found and user id matching
+	mock.ExpectQuery("SELECT user_id FROM answer").WithArgs(4).WillReturnRows(sqlmock.NewRows([]string{"user_id"}).AddRow(4))
+	mock.ExpectExec("UPDATE answer").WithArgs(4).WillReturnResult(sqlmock.NewResult(1, 1))
+	_, err = MarkAnswerAsDeleted(4, 4)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err != nil {
+		t.Errorf("Error while marking answer as deleted: %s", err.Error())
+	}
+}

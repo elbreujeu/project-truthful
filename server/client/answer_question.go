@@ -58,3 +58,24 @@ func AnswerQuestion(userId int, questionId int, answerText string, authorIpAddre
 	}
 	return id, http.StatusCreated, nil
 }
+
+func MarkAnswerAsDeleted(userId int, answerId int) (int, error) {
+	// we check if the user is the author of the answer
+	authorId, err := database.GetAnswerAuthorId(answerId, database.DB)
+	if err != nil && err == sql.ErrNoRows {
+		// if the answer doesn't exist, we return a 404
+		return http.StatusNotFound, errors.New("answer not found")
+	} else if err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	if authorId != userId {
+		return http.StatusForbidden, errors.New("user is not the author of the answer")
+	}
+
+	err = database.MarkAnswerAsDeleted(answerId, database.DB)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+	return http.StatusNoContent, nil
+}

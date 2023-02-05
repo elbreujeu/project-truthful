@@ -8,7 +8,7 @@ import (
 
 func CheckAnswerIdExists(answerId int, db *sql.DB) (bool, error) {
 	var count int
-	err := db.QueryRow("SELECT COUNT(*) FROM answer WHERE id = ?", answerId).Scan(&count)
+	err := db.QueryRow("SELECT COUNT(*) FROM answer WHERE id = ? AND has_been_deleted = 0", answerId).Scan(&count)
 	if err != nil {
 		log.Printf("Error checking if post %d exists, %v\n", answerId, err)
 		return false, err
@@ -16,9 +16,19 @@ func CheckAnswerIdExists(answerId int, db *sql.DB) (bool, error) {
 	return count > 0, nil
 }
 
+func GetAnswerAuthorId(answerId int, db *sql.DB) (int, error) {
+	var authorId int
+	err := db.QueryRow("SELECT user_id FROM answer WHERE id = ? AND has_been_deleted = 0", answerId).Scan(&authorId)
+	if err != nil {
+		log.Printf("Error getting author id for answer %d, %v\n", answerId, err)
+		return 0, err
+	}
+	return authorId, nil
+}
+
 func HasQuestionBeenAnswered(questionId int, db *sql.DB) (bool, error) {
 	var count int
-	err := db.QueryRow("SELECT COUNT(*) FROM answer WHERE question_id = ?", questionId).Scan(&count)
+	err := db.QueryRow("SELECT COUNT(*) FROM answer WHERE question_id = ? AND has_been_deleted = 0", questionId).Scan(&count)
 	if err != nil {
 		log.Printf("Error checking if question %d has been answered, %v\n", questionId, err)
 		return false, err
@@ -39,6 +49,15 @@ func AddAnswer(userId int, questionId int, answerText string, answererIpAddress 
 		return 0, err
 	}
 	return id, nil
+}
+
+func MarkAnswerAsDeleted(answerId int, db *sql.DB) error {
+	_, err := db.Exec("UPDATE answer SET has_been_deleted = 1 WHERE id = ?", answerId)
+	if err != nil {
+		log.Printf("Error marking answer %d as deleted, %v\n", answerId, err)
+		return err
+	}
+	return nil
 }
 
 func getAnswers(id int, start int, end int, db *sql.DB) ([]models.Answer, error) {
