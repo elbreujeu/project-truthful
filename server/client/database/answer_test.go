@@ -119,3 +119,58 @@ func TestHasQuestionBeenAnswered(t *testing.T) {
 		t.Errorf("Error should not be nil")
 	}
 }
+
+func TestGetAnswerAuthorId(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating sqlmock: %s", err.Error())
+	}
+	defer db.Close()
+
+	mock.ExpectQuery("SELECT user_id FROM answer").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"author_id"}).AddRow(1))
+	authorId, err := GetAnswerAuthorId(1, db)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err != nil {
+		t.Errorf("Error while getting answer author id: %s", err.Error())
+	}
+	if authorId != 1 {
+		t.Errorf("Author id should be 1")
+	}
+
+	mock.ExpectQuery("SELECT user_id FROM answer").WithArgs(2).WillReturnError(errors.New("error"))
+	_, err = GetAnswerAuthorId(2, db)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err == nil {
+		t.Errorf("Error should not be nil")
+	}
+}
+
+func TestMarkAnswerAsDeleted(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating sqlmock: %s", err.Error())
+	}
+	defer db.Close()
+
+	mock.ExpectExec("UPDATE answer").WithArgs(1).WillReturnError(errors.New("error"))
+	err = MarkAnswerAsDeleted(1, db)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err == nil {
+		t.Errorf("Error should not be nil")
+	}
+
+	mock.ExpectExec("UPDATE answer").WithArgs(2).WillReturnResult(sqlmock.NewResult(1, 1))
+	err = MarkAnswerAsDeleted(2, db)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err != nil {
+		t.Errorf("Error should be nil")
+	}
+}

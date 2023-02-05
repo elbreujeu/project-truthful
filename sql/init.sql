@@ -46,6 +46,8 @@ CREATE TABLE `answer` (
   `text` varchar(1000) NOT NULL,
   `answerer_ip_address` varchar(45) NOT NULL,
   `creation_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `has_been_deleted` tinyint(1) NOT NULL DEFAULT '0',
+  `deletion_date` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `question_id` (`question_id`),
   CONSTRAINT `answer_ibfk_1` FOREIGN KEY (`question_id`) REFERENCES `question` (`id`),

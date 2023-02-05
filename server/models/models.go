@@ -69,3 +69,7 @@ type LikeAnswerInfos struct {
 	AnswerId int  `json:"answer_id"`
 	Like     bool `json:"like"`
 }
+
+type DeleteAnswerInfos struct {
+	AnswerId int `json:"answer_id"`
+}
