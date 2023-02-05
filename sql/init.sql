@@ -18,7 +18,7 @@ CREATE TABLE `user` (
   `display_name` varchar(30) NOT NULL,
   `password` char(60) NOT NULL,
   `birthdate` date NOT NULL,
-  `creation_date` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -30,7 +30,7 @@ CREATE TABLE `question` (
   `author_ip_address` varchar(45) NOT NULL,
   `is_author_anonymous` tinyint(1) NOT NULL DEFAULT '1',
   `text` varchar(500) NOT NULL,
-  `creation_date` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `author_id` (`author_id`),
   CONSTRAINT `question_ibfk_1` FOREIGN KEY (`author_id`) REFERENCES `user` (`id`),
@@ -45,9 +45,9 @@ CREATE TABLE `answer` (
   `question_id` int unsigned NOT NULL,
   `text` varchar(1000) NOT NULL,
   `answerer_ip_address` varchar(45) NOT NULL,
-  `creation_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `has_been_deleted` tinyint(1) NOT NULL DEFAULT '0',
-  `deletion_date` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `question_id` (`question_id`),
   CONSTRAINT `answer_ibfk_1` FOREIGN KEY (`question_id`) REFERENCES `question` (`id`),
