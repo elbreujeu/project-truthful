@@ -150,6 +150,19 @@ func getUserProfile(c *gin.Context) {
 		return
 	}
 
+	if count < 0 || start < 0 {
+		log.Printf("Error while parsing query parameter: negative values\n")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "error while parsing query parameter",
+			"error":   "negative values",
+		})
+		return
+	}
+
+	if count > 30 {
+		count = 30
+	}
+
 	user, code, err := client.GetUserProfile(username, count, start)
 	if err != nil {
 		log.Printf("Error while getting user: %s\n", err.Error())

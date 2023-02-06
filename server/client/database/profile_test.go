@@ -119,11 +119,11 @@ func TestGetProfileInfos(t *testing.T) {
 	mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(2).WillReturnRows(sqlmock.NewRows([]string{"username", "display_name"}).AddRow("username_author", "display_name_author"))
 	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
 	profile, err := GetUserProfileInfos(1, 30, 0, db)
-	if mock.ExpectationsWereMet() != nil {
-		t.Errorf("Error while checking expectations: %s", err.Error())
-	}
 	if err != nil {
 		t.Errorf("Database error: expected nil, got %s", err.Error())
+	}
+	if err = mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
 	}
 	// compares each field of the struct
 	if profile.Username != expected.Username {
