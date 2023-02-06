@@ -1,8 +1,11 @@
 package database
 
 import (
+	"database/sql"
 	"errors"
+	"fmt"
 	"project_truthful/helpunittesting"
+	"project_truthful/models"
 	"testing"
 	"time"
 
@@ -98,8 +101,20 @@ func TestGetQuestions(t *testing.T) {
 		t.Error("Error while checking expectations")
 	}
 
+	// test for error when scanning rows
+	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"}).AddRow(55, 55, 55, 55, 55, 55)
+	mock.ExpectQuery("SELECT").WithArgs(1, 0, 30).WillReturnRows(rows)
+	_, err = GetQuestions(1, 0, 30, db)
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+	expectErr = mock.ExpectationsWereMet()
+	if expectErr != nil {
+		t.Error("Error while checking expectations")
+	}
+
 	// test for no rows returned
-	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "creation_date"})
+	rows = sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"})
 	mock.ExpectQuery("SELECT").WithArgs(1, 0, 30).WillReturnRows(rows)
 	questions, err := GetQuestions(1, 0, 30, db)
 	if err != nil {
@@ -109,6 +124,30 @@ func TestGetQuestions(t *testing.T) {
 		t.Errorf("Expected 0 questions, got %d", len(questions))
 	}
 	expectErr = mock.ExpectationsWereMet()
+	if expectErr != nil {
+		t.Error("Error while checking expectations")
+	}
+}
+
+func TestGetQuestionsError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Error while creating mock: %s", err.Error())
+	}
+	creationDate := time.Now()
+	questions := helpunittesting.GenerateTestQuestions(3, 1, creationDate)
+	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"})
+	for _, question := range questions {
+		rows.AddRow(question.Id, question.Text, question.Author.Id, question.IsAuthorAnonymous, question.ReceiverId, question.CreatedAt)
+	}
+	mock.ExpectQuery("SELECT").WithArgs(1, 0, 30).WillReturnRows(rows)
+	// expects all the queries for getting answers
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(questions[0].Id).WillReturnError(errors.New("error for db test"))
+	_, err = GetQuestions(1, 0, 30, db)
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
+	expectErr := mock.ExpectationsWereMet()
 	if expectErr != nil {
 		t.Error("Error while checking expectations")
 	}
@@ -124,14 +163,15 @@ func TestGetQuestionsMultipleRows(t *testing.T) {
 	questions := helpunittesting.GenerateTestQuestions(30, 1, curTime)
 
 	// generate rows
-	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "creation_date"})
+	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"})
 	for _, question := range questions {
-		rows.AddRow(question.Id, question.Text, question.AuthorId, question.IsAuthorAnonymous, question.ReceiverId, question.CreatedAt)
+		rows.AddRow(question.Id, question.Text, question.Author.Id, question.IsAuthorAnonymous, question.ReceiverId, question.CreatedAt)
 	}
 	mock.ExpectQuery("SELECT").WithArgs(1, 0, 30).WillReturnRows(rows)
 	// expects all the queries for getting answers
-	for _, question := range questions {
+	for i, question := range questions {
 		mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(question.Id).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+		mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(question.Author.Id).WillReturnRows(sqlmock.NewRows([]string{"username", "display_name"}).AddRow("username"+fmt.Sprintf("%d", i), "display_name"+fmt.Sprintf("%d", i)))
 	}
 
 	returnedQuestions, err := GetQuestions(1, 0, 30, db)
@@ -148,8 +188,14 @@ func TestGetQuestionsMultipleRows(t *testing.T) {
 		if q.Text != questions[i].Text {
 			t.Errorf("Expected Text to be %s, but got %s", questions[i].Text, q.Text)
 		}
-		if q.AuthorId != questions[i].AuthorId {
-			t.Errorf("Expected AuthorId to be %d, but got %d", questions[i].AuthorId, q.AuthorId)
+		if q.Author.Id != questions[i].Author.Id {
+			t.Errorf("Expected AuthorId to be %d, but got %d", questions[i].Author.Id, q.Author.Id)
+		}
+		if q.Author.Username != "username"+fmt.Sprintf("%d", i) {
+			t.Errorf("Expected AuthorUsername to be %s, but got %s", "username"+fmt.Sprintf("%d", i), q.Author.Username)
+		}
+		if q.Author.DisplayName != "display_name"+fmt.Sprintf("%d", i) {
+			t.Errorf("Expected AuthorDisplayName to be %s, but got %s", "display_name"+fmt.Sprintf("%d", i), q.Author.DisplayName)
 		}
 		if q.IsAuthorAnonymous != questions[i].IsAuthorAnonymous {
 			t.Errorf("Expected IsAuthorAnonymous to be %t, but got %t", questions[i].IsAuthorAnonymous, q.IsAuthorAnonymous)
@@ -173,9 +219,9 @@ func TestGetQuestionsMultipleRowsAndAnswers(t *testing.T) {
 	questions := helpunittesting.GenerateTestQuestions(30, 1, curTime)
 
 	// generate rows
-	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "creation_date"})
+	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"})
 	for _, question := range questions {
-		rows.AddRow(question.Id, question.Text, question.AuthorId, question.IsAuthorAnonymous, question.ReceiverId, question.CreatedAt)
+		rows.AddRow(question.Id, question.Text, question.Author.Id, question.IsAuthorAnonymous, question.ReceiverId, question.CreatedAt)
 	}
 	mock.ExpectQuery("SELECT").WithArgs(1, 0, 30).WillReturnRows(rows)
 	// expects all the queries for getting answers. Every query will return no answers except the 25th one
@@ -184,6 +230,7 @@ func TestGetQuestionsMultipleRowsAndAnswers(t *testing.T) {
 			mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(question.Id).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
 		} else {
 			mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(question.Id).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+			mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(question.Author.Id).WillReturnRows(sqlmock.NewRows([]string{"username", "display_name"}).AddRow("username"+fmt.Sprintf("%d", i), "display_name"+fmt.Sprintf("%d", i)))
 		}
 	}
 
@@ -204,8 +251,14 @@ func TestGetQuestionsMultipleRowsAndAnswers(t *testing.T) {
 		if q.Text != questions[i].Text {
 			t.Errorf("Expected Text to be %s, but got %s", questions[i].Text, q.Text)
 		}
-		if q.AuthorId != questions[i].AuthorId {
-			t.Errorf("Expected AuthorId to be %d, but got %d", questions[i].AuthorId, q.AuthorId)
+		if q.Author.Id != questions[i].Author.Id {
+			t.Errorf("Expected AuthorId to be %d, but got %d", questions[i].Author.Id, q.Author.Id)
+		}
+		if q.Author.Username != "username"+fmt.Sprintf("%d", i) {
+			t.Errorf("Expected AuthorUsername to be %s, but got %s", "username"+fmt.Sprintf("%d", i), q.Author.Username)
+		}
+		if q.Author.DisplayName != "display_name"+fmt.Sprintf("%d", i) {
+			t.Errorf("Expected AuthorDisplayName to be %s, but got %s", "display_name"+fmt.Sprintf("%d", i), q.Author.DisplayName)
 		}
 		if q.IsAuthorAnonymous != questions[i].IsAuthorAnonymous {
 			t.Errorf("Expected IsAuthorAnonymous to be %t, but got %t", questions[i].IsAuthorAnonymous, q.IsAuthorAnonymous)
@@ -216,5 +269,116 @@ func TestGetQuestionsMultipleRowsAndAnswers(t *testing.T) {
 		if q.CreatedAt != questions[i].CreatedAt {
 			t.Errorf("Expected CreatedAt to be %v, but got %v", questions[i].CreatedAt, q.CreatedAt)
 		}
+	}
+}
+
+func TestGetQuestionById(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	question := models.Question{
+		Id:                1,
+		Text:              "What is the meaning of life?",
+		Author:            models.UserPreview{Id: 42, Username: "username", DisplayName: "display_name"},
+		IsAuthorAnonymous: false,
+		ReceiverId:        12,
+		CreatedAt:         time.Now(),
+	}
+
+	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"}).
+		AddRow(question.Id, question.Text, question.Author.Id, question.IsAuthorAnonymous, question.ReceiverId, question.CreatedAt)
+
+	mock.ExpectQuery("SELECT id, text, author_id, is_author_anonymous, receiver_id, created_at FROM question WHERE id = \\?").
+		WithArgs(1).
+		WillReturnRows(rows)
+	mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(question.Author.Id).WillReturnRows(sqlmock.NewRows([]string{"username", "display_name"}).AddRow(question.Author.Username, question.Author.DisplayName))
+
+	gotQuestion, err := GetQuestionById(1, db)
+	if err != nil {
+		t.Fatalf("error was not expected while retrieving question: %s", err)
+	}
+	if gotQuestion.Id != question.Id ||
+		gotQuestion.Text != question.Text ||
+		gotQuestion.Author.Id != question.Author.Id ||
+		gotQuestion.Author.Username != question.Author.Username ||
+		gotQuestion.Author.DisplayName != question.Author.DisplayName ||
+		gotQuestion.IsAuthorAnonymous != question.IsAuthorAnonymous ||
+		gotQuestion.ReceiverId != question.ReceiverId ||
+		gotQuestion.CreatedAt != question.CreatedAt {
+		t.Errorf("question was not as expected.\nExpected: %v\nGot: %v\n", question, gotQuestion)
+	}
+
+	// Ensure all expectations were met
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestGetQuestionByIdNullAuthor(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	question := models.Question{
+		Id:                1,
+		Text:              "What is the meaning of life?",
+		Author:            models.UserPreview{Id: 0, Username: "", DisplayName: ""},
+		IsAuthorAnonymous: true,
+		ReceiverId:        13,
+		CreatedAt:         time.Now(),
+	}
+
+	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"}).
+		AddRow(question.Id, question.Text, nil, question.IsAuthorAnonymous, question.ReceiverId, question.CreatedAt)
+
+	mock.ExpectQuery("SELECT id, text, author_id, is_author_anonymous, receiver_id, created_at FROM question WHERE id = \\?").
+		WithArgs(1).
+		WillReturnRows(rows)
+
+	gotQuestion, err := GetQuestionById(1, db)
+	if err != nil {
+		t.Fatalf("error was not expected while retrieving question: %s", err)
+	}
+	if gotQuestion.Id != question.Id ||
+		gotQuestion.Text != question.Text ||
+		gotQuestion.Author.Id != question.Author.Id ||
+		gotQuestion.Author.Username != question.Author.Username ||
+		gotQuestion.Author.DisplayName != question.Author.DisplayName ||
+		gotQuestion.IsAuthorAnonymous != question.IsAuthorAnonymous ||
+		gotQuestion.ReceiverId != question.ReceiverId ||
+		gotQuestion.CreatedAt != question.CreatedAt {
+		t.Errorf("question was not as expected.\nExpected: %v\nGot: %v\n", question, gotQuestion)
+	}
+
+	// Ensure all expectations were met
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestGetQuestionByIdNotFound(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	mock.ExpectQuery("SELECT id, text, author_id, is_author_anonymous, receiver_id, created_at FROM question WHERE id = \\?").
+		WithArgs(1).
+		WillReturnError(sql.ErrNoRows)
+
+	_, err = GetQuestionById(1, db)
+	if err == nil {
+		t.Errorf("error was expected but got nil")
+	}
+
+	// Ensure all expectations were met
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }

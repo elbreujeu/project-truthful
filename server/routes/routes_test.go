@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -232,7 +233,7 @@ func TestRefreshToken(t *testing.T) {
 	os.Setenv("IS_TEST", "false")
 }
 
-func TestGetUserProfile(t *testing.T) {
+func TestGetUserProfileFail(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -242,30 +243,79 @@ func TestGetUserProfile(t *testing.T) {
 	router := gin.Default()
 	SetupRoutes(router)
 	SetMiddleware(router)
+
+	// test for fail converting count
+	r, _ := http.NewRequest("GET", "/get_user_profile/toto?count=toto", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"error":"strconv.Atoi: parsing \"toto\": invalid syntax","message":"error while parsing query parameter"}`, w.Body.String())
+
+	// test for fail converting start
+	r, _ = http.NewRequest("GET", "/get_user_profile/toto?start=toto", nil)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"error":"strconv.Atoi: parsing \"toto\": invalid syntax","message":"error while parsing query parameter"}`, w.Body.String())
+
+	// test for negative count
+	r, _ = http.NewRequest("GET", "/get_user_profile/toto?count=-1", nil)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+	assert.Equal(t, `{"error":"negative values","message":"error while parsing query parameter"}`, w.Body.String())
+
 	// tests for error when getting user profile
 	mock.ExpectQuery("SELECT (.+) FROM user").WithArgs("toto").WillReturnError(errors.New("error"))
-	r, _ := http.NewRequest("GET", "/get_user_profile/toto", nil)
-	w := httptest.NewRecorder()
+	r, _ = http.NewRequest("GET", "/get_user_profile/toto?count=50", nil)
+	w = httptest.NewRecorder()
 	router.ServeHTTP(w, r)
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
 	}
 	assert.Equal(t, `{"error":"error","message":"error while getting user"}`, w.Body.String())
+}
 
-	// tests for success
-	rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
-	mock.ExpectQuery("SELECT id FROM user WHERE username = \\?").WithArgs("username").WillReturnRows(rows)
-	r, _ = http.NewRequest("GET", "/get_user_profile/username", nil)
+func TestGetUserProfileSuccess(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+	database.DB = db
+	router := gin.Default()
+	SetupRoutes(router)
+	SetMiddleware(router)
+
+	creationTime := time.Now()
+
+	mock.ExpectQuery("SELECT id FROM user").WithArgs("toto").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"username", "display_name"}).AddRow("username", "display_name"))
 	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
 	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
 	mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
-	w = httptest.NewRecorder()
+	mock.ExpectQuery("SELECT id, question_id, text, created_at FROM answer").WithArgs(1, 0, 10).WillReturnRows(sqlmock.NewRows([]string{"id", "question_id", "text", "created_at"}).AddRow(1, 1, "answer_text", creationTime))
+
+	questionRows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"}).
+		AddRow(1, "question_text", 2, false, 1, creationTime)
+	mock.ExpectQuery("SELECT id, text, author_id, is_author_anonymous, receiver_id, created_at FROM question").WithArgs(1).WillReturnRows(questionRows)
+	mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(2).WillReturnRows(sqlmock.NewRows([]string{"username", "display_name"}).AddRow("username_author", "display_name_author"))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+
+	r, _ := http.NewRequest("GET", "/get_user_profile/toto", nil)
+	w := httptest.NewRecorder()
 	router.ServeHTTP(w, r)
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
 	}
-	assert.Equal(t, `{"id":1,"username":"username","display_name":"display_name","follower_count":1,"following_count":1,"answer_count":1,"answers":null}`, w.Body.String())
+	expectedResponse := `{"id":1,"username":"username","display_name":"display_name","follower_count":1,"following_count":1,"answer_count":1,"answers":[{"id":1,"is_author_anonymous":false,"author":{"id":2,"username":"username_author","display_name":"display_name_author"},"question_text":"question_text","answer_text":"answer_text","answer_date":"","date_answered":"` + creationTime.Format("2006-01-02T15:04:05.999999999-07:00") + `","like_count":1}]}`
+	assert.Equal(t, expectedResponse, w.Body.String())
 }
 
 func TestFollowUser(t *testing.T) {
@@ -491,15 +541,16 @@ func TestGetQuestionsWithParameters(t *testing.T) {
 	// Generate questions
 	questionTime := time.Now()
 	questions := helpunittesting.GenerateTestQuestions(10, 1, questionTime)
-	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "creation_date"})
+	rows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"})
 	for _, question := range questions {
-		rows.AddRow(question.Id, question.Text, question.AuthorId, question.IsAuthorAnonymous, question.ReceiverId, question.CreatedAt)
+		rows.AddRow(question.Id, question.Text, question.Author.Id, question.IsAuthorAnonymous, question.ReceiverId, question.CreatedAt)
 	}
 	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 	mock.ExpectQuery("SELECT").WithArgs(1, 0, 10).WillReturnRows(rows)
 
-	for _, question := range questions {
+	for i, question := range questions {
 		mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(question.Id).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+		mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(question.Author.Id).WillReturnRows(sqlmock.NewRows([]string{"username", "display_name"}).AddRow("username"+fmt.Sprintf("%d", i), "display_name"+fmt.Sprintf("%d", i)))
 	}
 	r, _ = http.NewRequest("GET", "/get_questions", nil)
 	r.Header.Set("Authorization", "Bearer token")
@@ -525,8 +576,14 @@ func TestGetQuestionsWithParameters(t *testing.T) {
 		if q.Text != questions[i].Text {
 			t.Errorf("Expected Text to be %s, but got %s", questions[i].Text, q.Text)
 		}
-		if q.AuthorId != questions[i].AuthorId {
-			t.Errorf("Expected AuthorId to be %d, but got %d", questions[i].AuthorId, q.AuthorId)
+		if q.Author.Id != questions[i].Author.Id {
+			t.Errorf("Expected AuthorId to be %d, but got %d", questions[i].Author.Id, q.Author.Id)
+		}
+		if q.Author.Username != "username"+fmt.Sprintf("%d", i) {
+			t.Errorf("Expected AuthorUsername to be %s, but got %s", "username"+fmt.Sprintf("%d", i), q.Author.Username)
+		}
+		if q.Author.DisplayName != "display_name"+fmt.Sprintf("%d", i) {
+			t.Errorf("Expected AuthorDisplayName to be %s, but got %s", "display_name"+fmt.Sprintf("%d", i), q.Author.DisplayName)
 		}
 		if q.IsAuthorAnonymous != questions[i].IsAuthorAnonymous {
 			t.Errorf("Expected IsAuthorAnonymous to be %t, but got %t", questions[i].IsAuthorAnonymous, q.IsAuthorAnonymous)

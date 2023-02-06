@@ -6,10 +6,8 @@ import (
 	"project_truthful/models"
 )
 
-func GetUserProfileInfos(id int, db *sql.DB) (models.UserProfileInfos, error) {
-	var username string
-	var displayName string
-	err := db.QueryRow("SELECT username, display_name FROM user WHERE id = ?", id).Scan(&username, &displayName)
+func GetUserProfileInfos(id int, count int, start int, db *sql.DB) (models.UserProfileInfos, error) {
+	username, displayName, err := GetUsernameAndDisplayName(id, db)
 	if err != nil {
 		log.Printf("Error getting user profile infos for id %d, %v\n", id, err)
 		return models.UserProfileInfos{}, err
@@ -36,7 +34,7 @@ func GetUserProfileInfos(id int, db *sql.DB) (models.UserProfileInfos, error) {
 		return models.UserProfileInfos{}, err
 	}
 
-	answers, err := getAnswers(id, 0, 10, db)
+	answers, err := getAnswers(id, count, start, db)
 	if err != nil {
 		log.Printf("Error getting answers for id %d, %v\n", id, err)
 		return models.UserProfileInfos{}, err

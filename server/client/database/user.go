@@ -66,3 +66,14 @@ func GetHashedPassword(id int, db *sql.DB) (string, error) {
 	}
 	return password, nil
 }
+
+func GetUsernameAndDisplayName(id int, db *sql.DB) (string, string, error) {
+	var username string
+	var displayName string
+	err := db.QueryRow("SELECT username, display_name FROM user WHERE id = ?", id).Scan(&username, &displayName)
+	if err != nil {
+		log.Printf("Error getting username and display name for id %d, %v\n", id, err)
+		return "", "", err
+	}
+	return username, displayName, nil
+}

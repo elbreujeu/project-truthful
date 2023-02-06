@@ -60,7 +60,43 @@ func MarkAnswerAsDeleted(answerId int, db *sql.DB) error {
 	return nil
 }
 
-func getAnswers(id int, start int, end int, db *sql.DB) ([]models.Answer, error) {
-	//TODO
-	return nil, nil
+func getAnswers(id int, count int, start int, db *sql.DB) ([]models.Answer, error) {
+	rows, err := db.Query("SELECT id, question_id, text, created_at FROM answer WHERE user_id = ? AND has_been_deleted = 0 ORDER BY created_at DESC LIMIT ?, ?", id, start, count+start)
+	if err != nil {
+		log.Printf("Error getting answers for id %d, %v\n", id, err)
+		return nil, err
+	}
+	defer rows.Close()
+	var answers []models.Answer
+	for rows.Next() {
+		//TODO: Put this in a function
+		var answer models.Answer
+		var questionId int
+		err := rows.Scan(&answer.Id, &questionId, &answer.AnswerText, &answer.CreatedAt)
+		if err != nil {
+			log.Printf("Error scanning answer for id %d, %v\n", id, err)
+			return nil, err
+		}
+		question, err := GetQuestionById(questionId, db)
+		if err != nil {
+			log.Printf("Error getting question for answer %d, %v\n", answer.Id, err)
+			question = models.Question{}
+		}
+		answer.QuestionText = question.Text
+		if question.IsAuthorAnonymous {
+			answer.Author = models.UserPreview{}
+			answer.IsAuthorAnonymous = true
+		} else {
+			answer.Author.Id = question.Author.Id
+			answer.Author.Username = question.Author.Username
+			answer.Author.DisplayName = question.Author.DisplayName
+		}
+		answer.LikeCount, err = GetLikeCountForAnswer(answer.Id, db)
+		if err != nil {
+			log.Printf("Error getting like count for answer %d, %v\n", answer.Id, err)
+			answer.LikeCount = 0
+		}
+		answers = append(answers, answer)
+	}
+	return answers, nil
 }
