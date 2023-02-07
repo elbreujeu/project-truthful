@@ -52,7 +52,7 @@ func AddAnswer(userId int, questionId int, answerText string, answererIpAddress 
 }
 
 func MarkAnswerAsDeleted(answerId int, db *sql.DB) error {
-	_, err := db.Exec("UPDATE answer SET has_been_deleted = 1 WHERE id = ?", answerId)
+	_, err := db.Exec("UPDATE answer SET has_been_deleted = 1, deleted_at = NOW() WHERE id = ?", answerId)
 	if err != nil {
 		log.Printf("Error marking answer %d as deleted, %v\n", answerId, err)
 		return err
