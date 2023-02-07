@@ -31,6 +31,8 @@ CREATE TABLE `question` (
   `is_author_anonymous` tinyint(1) NOT NULL DEFAULT '1',
   `text` varchar(500) NOT NULL,
   `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `has_been_deleted` tinyint(1) NOT NULL DEFAULT '0',
+  `deleted_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `author_id` (`author_id`),
   CONSTRAINT `question_ibfk_1` FOREIGN KEY (`author_id`) REFERENCES `user` (`id`),
