@@ -76,3 +76,7 @@ type LikeAnswerInfos struct {
 type DeleteAnswerInfos struct {
 	AnswerId int `json:"answer_id"`
 }
+
+type DeleteQuestionInfos struct {
+	QuestionId int `json:"question_id"`
+}

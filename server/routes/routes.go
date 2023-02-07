@@ -381,6 +381,32 @@ func deleteAnswer(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "answer deleted"})
 }
 
+func deleteQuestion(c *gin.Context) {
+	log.Printf("Received request to delete question from ip %s\n", c.ClientIP())
+
+	requesterId, _, err := parseAndVerifyAccessToken(c)
+	if err != nil {
+		return
+	}
+
+	var infos models.DeleteQuestionInfos
+	err = c.ShouldBindJSON(&infos)
+	if err != nil {
+		log.Printf("Error while parsing request body: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "error while parsing request body", "error": err.Error()})
+		return
+	}
+
+	code, err := client.MarkQuestionAsDeleted(requesterId, infos.QuestionId)
+	if err != nil {
+		log.Printf("Error while deleting question: %s\n", err.Error())
+		c.JSON(code, gin.H{"message": "error while deleting question", "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "question deleted"})
+}
+
 func SetupRoutes(r *gin.Engine) {
 	r.GET("/hello_world", helloWorld)
 	r.POST("/register", register)
@@ -393,4 +419,5 @@ func SetupRoutes(r *gin.Engine) {
 	r.POST("/answer_question", answerQuestion)
 	r.POST("/like_answer", likeAnswer)
 	r.POST("/delete_answer", deleteAnswer)
+	r.POST("/delete_question", deleteQuestion)
 }
