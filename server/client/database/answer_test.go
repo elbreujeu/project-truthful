@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -254,5 +255,40 @@ func TestGetAnswers(t *testing.T) {
 	}
 	if answers[0].IsAuthorAnonymous != true {
 		t.Errorf("IsAuthorAnonymous should be true")
+	}
+}
+
+func TestGetAnswerIdByQuestionId(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	// Test success case
+	rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
+	mock.ExpectQuery("SELECT id FROM answer WHERE question_id = \\? AND has_been_deleted = 0").WithArgs(1).WillReturnRows(rows)
+
+	answerId, err := GetAnswerIdByQuestionId(1, db)
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+	if answerId != 1 {
+		t.Errorf("unexpected answer id, want %d, got %d", 1, answerId)
+	}
+
+	// Test error case
+	mock.ExpectQuery("SELECT id FROM answer WHERE question_id = \\? AND has_been_deleted = 0").WithArgs(2).WillReturnError(sql.ErrNoRows)
+
+	answerId, err = GetAnswerIdByQuestionId(2, db)
+	if err == nil {
+		t.Errorf("expected error, got nil")
+	}
+	if answerId != 0 {
+		t.Errorf("unexpected answer id, want %d, got %d", 0, answerId)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }

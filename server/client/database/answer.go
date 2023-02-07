@@ -36,6 +36,16 @@ func HasQuestionBeenAnswered(questionId int, db *sql.DB) (bool, error) {
 	return count > 0, nil
 }
 
+func GetAnswerIdByQuestionId(questionId int, db *sql.DB) (int, error) {
+	var answerId int
+	err := db.QueryRow("SELECT id FROM answer WHERE question_id = ? AND has_been_deleted = 0", questionId).Scan(&answerId)
+	if err != nil {
+		log.Printf("Error getting answer id for question %d, %v\n", questionId, err)
+		return 0, err
+	}
+	return answerId, nil
+}
+
 func AddAnswer(userId int, questionId int, answerText string, answererIpAddress string, db *sql.DB) (int64, error) {
 	result, err := db.Exec("INSERT INTO answer (user_id, question_id, text, answerer_ip_address) VALUES (?, ?, ?, ?)", userId, questionId, answerText, answererIpAddress)
 	if err != nil {
@@ -52,7 +62,7 @@ func AddAnswer(userId int, questionId int, answerText string, answererIpAddress 
 }
 
 func MarkAnswerAsDeleted(answerId int, db *sql.DB) error {
-	_, err := db.Exec("UPDATE answer SET has_been_deleted = 1 WHERE id = ?", answerId)
+	_, err := db.Exec("UPDATE answer SET has_been_deleted = 1, deleted_at = NOW() WHERE id = ?", answerId)
 	if err != nil {
 		log.Printf("Error marking answer %d as deleted, %v\n", answerId, err)
 		return err

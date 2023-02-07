@@ -77,5 +77,5 @@ func MarkAnswerAsDeleted(userId int, answerId int) (int, error) {
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}
-	return http.StatusNoContent, nil
+	return http.StatusOK, nil
 }

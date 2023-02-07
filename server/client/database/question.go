@@ -108,3 +108,12 @@ func GetQuestionById(questionId int, db *sql.DB) (models.Question, error) {
 	}
 	return question, nil
 }
+
+func MarkQuestionAsDeleted(questionId int, db *sql.DB) error {
+	_, err := db.Exec("UPDATE question SET has_been_deleted = 1, deleted_at = NOW() WHERE id = ?", questionId)
+	if err != nil {
+		log.Printf("Error marking question %d as deleted, %v\n", questionId, err)
+		return err
+	}
+	return nil
+}
