@@ -21,12 +21,13 @@ func MarkQuestionAsDeleted(userId int, questionId int) (int, error) {
 	}
 
 	// we check if the user has already answered the question. if so, we delete the answer
-	alreadyAnswered, err := database.HasQuestionBeenAnswered(questionId, database.DB)
-	if err != nil {
+	// below code is shitty. we should get the answer id from the db
+	answerId, err := database.GetAnswerIdByQuestionId(questionId, database.DB)
+	if err != nil && err != sql.ErrNoRows {
 		return http.StatusInternalServerError, err
 	}
-	if alreadyAnswered {
-		err = database.MarkAnswerAsDeleted(questionId, database.DB)
+	if err != sql.ErrNoRows {
+		err = database.MarkAnswerAsDeleted(answerId, database.DB)
 		if err != nil {
 			return http.StatusInternalServerError, err
 		}
