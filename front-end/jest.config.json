@@ -1,0 +1,8 @@
+{
+    "transform": {
+        "^.+\\.jsx?$": "babel-jest",
+        "^.+\\.svg$": "<rootDir>/__mocks__/svgMock.js",
+        "^.+\\.css$": "<rootDir>/__mocks__/cssMock.js" 
+    },
+    "testEnvironment": "jsdom"
+}
