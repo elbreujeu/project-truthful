@@ -7,6 +7,7 @@ import (
 	"project_truthful/client/token"
 	"project_truthful/routes"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,6 +22,10 @@ func main() {
 
 	// Create a new Gin engine
 	router := gin.Default()
+
+	// Enable CORS and allow all origins
+	// TODO: Research it and change it to a more secure way
+	router.Use(cors.Default())
 
 	// Add middleware
 	routes.SetMiddleware(router)
