@@ -9,6 +9,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/stretchr/testify v1.8.1
 	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be
+	github.com/gin-contrib/cors v1.4.0
 )
 
 require (
