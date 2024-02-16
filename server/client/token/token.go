@@ -17,7 +17,7 @@ var jwtPublicKey *rsa.PublicKey
 var jwtPrivateKey *rsa.PrivateKey
 
 func Init() error {
-	pubKey, err := os.ReadFile("./cert/id_rsa.pub")
+	pubKey, err := os.ReadFile("/cert/id_rsa.pub")
 	if err != nil {
 		log.Printf("Unable to read public key: %v", err)
 		return err
@@ -28,7 +28,7 @@ func Init() error {
 		return err
 	}
 
-	prvKey, err := os.ReadFile("./cert/id_rsa")
+	prvKey, err := os.ReadFile("/cert/id_rsa")
 	if err != nil {
 		log.Printf("Unable to read private key: %v", err)
 		return err
