@@ -261,3 +261,53 @@ func TestGetUsernameAndDisplayNameError(t *testing.T) {
 		t.Errorf("error was expected while getting username and display name, but got nil")
 	}
 }
+
+func TestUpdateUserInformations(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	id := 1
+	displayName := "John Doe"
+	email := "john.doe@example.com"
+
+	mock.ExpectExec("UPDATE user SET display_name = \\?, email = \\? WHERE id = \\?").
+		WithArgs(displayName, email, id).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	err = UpdateUserInformations(id, displayName, email, db)
+	if err != nil {
+		t.Errorf("error was not expected while updating user informations: %s", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestUpdateUserInformationsError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	id := 1
+	displayName := "John Doe"
+	email := "john.doe@example.com"
+
+	mock.ExpectExec("UPDATE user SET display_name = \\?, email = \\? WHERE id = \\?").
+		WithArgs(displayName, email, id).
+		WillReturnError(errors.New("database error"))
+
+	err = UpdateUserInformations(id, displayName, email, db)
+	if err == nil {
+		t.Errorf("error was expected while updating user informations, but got nil")
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
