@@ -80,3 +80,8 @@ type DeleteAnswerInfos struct {
 type DeleteQuestionInfos struct {
 	QuestionId int `json:"question_id"`
 }
+
+type UpdateUserInfos struct {
+	DisplayName string `json:"display_name"`
+	Email       string `json:"email_address"`
+}
