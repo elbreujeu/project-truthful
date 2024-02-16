@@ -407,6 +407,33 @@ func deleteQuestion(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "question deleted"})
 }
 
+func updateUser(c *gin.Context) {
+	// NOTE : In the future, change this function to a lot of smaller functions with PATCH requests
+	log.Printf("Received request to update user from ip %s\n", c.ClientIP())
+
+	requesterId, _, err := parseAndVerifyAccessToken(c)
+	if err != nil {
+		return
+	}
+
+	var infos models.UpdateUserInfos
+	err = c.ShouldBindJSON(&infos)
+	if err != nil {
+		log.Printf("Error while parsing request body: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "error while parsing request body", "error": err.Error()})
+		return
+	}
+
+	code, err := client.UpdateUserInformations(requesterId, infos.DisplayName, infos.Email)
+	if err != nil {
+		log.Printf("Error while updating user: %s\n", err.Error())
+		c.JSON(code, gin.H{"message": "error while updating user", "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "user updated"})
+}
+
 func SetupRoutes(r *gin.Engine) {
 	r.GET("/hello_world", helloWorld)
 	r.POST("/register", register)
@@ -420,4 +447,5 @@ func SetupRoutes(r *gin.Engine) {
 	r.POST("/like_answer", likeAnswer)
 	r.POST("/delete_answer", deleteAnswer)
 	r.POST("/delete_question", deleteQuestion)
+	r.PUT("/users/update", updateUser)
 }

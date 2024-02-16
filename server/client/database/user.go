@@ -77,3 +77,12 @@ func GetUsernameAndDisplayName(id int, db *sql.DB) (string, string, error) {
 	}
 	return username, displayName, nil
 }
+
+func UpdateUserInformations(id int, displayName string, email string, db *sql.DB) error {
+	_, err := db.Exec("UPDATE user SET display_name = ?, email = ? WHERE id = ?", displayName, email, id)
+	if err != nil {
+		log.Printf("Error updating user informations for id %d, %v\n", id, err)
+		return err
+	}
+	return nil
+}
