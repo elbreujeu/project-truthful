@@ -85,3 +85,8 @@ type UpdateUserInfos struct {
 	DisplayName string `json:"display_name"`
 	Email       string `json:"email_address"`
 }
+
+type PromoteUserInfos struct {
+	UserId      int    `json:"user_id"`
+	PromoteType string `json:"promote_type"`
+}
