@@ -460,6 +460,50 @@ func promoteUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "user promoted"})
 }
 
+func moderationGetUserQuestions(c *gin.Context) {
+	log.Printf("Received request to get user questions from ip %s\n", c.ClientIP())
+
+	username := c.Param("user")
+
+	//get the "count" parameter from query parameters
+	countStr := c.Query("count")
+	startStr := c.Query("start")
+
+	count, err := basicfuncs.ConvertQueryParameterToInt(countStr, 10)
+	if err != nil {
+		log.Printf("Error while parsing count: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "invalid count",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	start, err := basicfuncs.ConvertQueryParameterToInt(startStr, 0)
+	if err != nil {
+		log.Printf("Error while parsing count: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "invalid count",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	requesterId, _, err := parseAndVerifyAccessToken(c)
+	if err != nil {
+		return
+	}
+
+	questions, code, err := client.ModerationGetUserQuestions(requesterId, username, start, count)
+	if err != nil {
+		log.Printf("Error while getting user questions: %s\n", err.Error())
+		c.JSON(code, gin.H{"message": "error while getting user questions", "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, questions)
+}
+
 func SetupRoutes(r *gin.Engine) {
 	r.GET("/hello_world", helloWorld)
 	r.POST("/register", register)
@@ -475,4 +519,5 @@ func SetupRoutes(r *gin.Engine) {
 	r.POST("/delete_question", deleteQuestion)
 	r.PUT("/users/update", updateUser)
 	r.POST("/moderation/promote", promoteUser)
+	r.GET("/moderation/get_user_questions/:user", moderationGetUserQuestions)
 }

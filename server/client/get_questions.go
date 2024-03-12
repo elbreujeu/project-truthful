@@ -1,6 +1,7 @@
 package client
 
 import (
+	"database/sql"
 	"errors"
 	"net/http"
 	"project_truthful/client/database"
@@ -26,4 +27,27 @@ func GetQuestions(userId int, start int, count int) ([]models.Question, int, err
 		return nil, http.StatusInternalServerError, err
 	}
 	return questions, http.StatusOK, nil
+}
+
+func ModerationGetUserQuestions(requesterId int, username string, start int, count int) ([]models.Question, int, error) {
+	isModerator, err := database.CheckModeratorStatus(requesterId, database.DB)
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+	isAdmin, err := database.CheckAdminStatus(requesterId, database.DB)
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+	if !isModerator && !isAdmin {
+		return nil, http.StatusForbidden, errors.New("user is not a moderator or admin")
+	}
+
+	userId, err := database.GetUserId(username, database.DB)
+	if err == sql.ErrNoRows {
+		return nil, http.StatusNotFound, errors.New("user not found")
+	} else if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+
+	return GetQuestions(userId, start, start+count)
 }
