@@ -1,6 +1,7 @@
 package client
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -218,5 +219,141 @@ func TestGetQuestionsWithAnswers(t *testing.T) {
 		if q.CreatedAt != questions[i].CreatedAt {
 			t.Errorf("Expected CreatedAt to be %v, but got %v", questions[i].CreatedAt, q.CreatedAt)
 		}
+	}
+}
+
+func TestModerationErrorMod(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Error while creating mock: %s", err.Error())
+	}
+	database.DB = db
+
+	// test with error while checking moderator status
+	mock.ExpectQuery("SELECT").WithArgs(1).WillReturnError(errors.New("error while checking moderator status"))
+	_, status, err := ModerationGetUserQuestions(1, "username", 0, 30)
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if status != http.StatusInternalServerError {
+		t.Errorf("Expected status %d, got %d", http.StatusInternalServerError, status)
+	}
+}
+
+func TestModerationErrorAdmin(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Error while creating mock: %s", err.Error())
+	}
+	database.DB = db
+
+	// test with error while checking admin status
+	mock.ExpectQuery("SELECT").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"is_moderator"}).AddRow(1))
+	mock.ExpectQuery("SELECT").WithArgs(1).WillReturnError(errors.New("error while checking admin status"))
+	_, status, err := ModerationGetUserQuestions(1, "username", 0, 30)
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if status != http.StatusInternalServerError {
+		t.Errorf("Expected status %d, got %d", http.StatusInternalServerError, status)
+	}
+}
+
+func TestModerationNotMod(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Error while creating mock: %s", err.Error())
+	}
+	database.DB = db
+
+	// test with user not being a moderator
+	mock.ExpectQuery("SELECT").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"is_moderator"}).AddRow(0))
+	mock.ExpectQuery("SELECT").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"is_admin"}).AddRow(0))
+	_, status, err := ModerationGetUserQuestions(1, "username", 0, 30)
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if status != http.StatusForbidden {
+		t.Errorf("Expected status %d, got %d", http.StatusForbidden, status)
+	}
+}
+
+func TestModerationUserNotFound(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Error while creating mock: %s", err.Error())
+	}
+	database.DB = db
+
+	// test with user not found
+	mock.ExpectQuery("SELECT").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"is_moderator"}).AddRow(1))
+	mock.ExpectQuery("SELECT").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"is_admin"}).AddRow(1))
+	mock.ExpectQuery("SELECT").WithArgs("username").WillReturnError(sql.ErrNoRows)
+	_, status, err := ModerationGetUserQuestions(1, "username", 0, 30)
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if status != http.StatusNotFound {
+		t.Errorf("Expected status %d, got %d", http.StatusNotFound, status)
+	}
+}
+
+func TestModerationErrorGetUserId(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Error while creating mock: %s", err.Error())
+	}
+	database.DB = db
+
+	// test with error while getting user id
+	mock.ExpectQuery("SELECT").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"is_moderator"}).AddRow(1))
+	mock.ExpectQuery("SELECT").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"is_admin"}).AddRow(1))
+	mock.ExpectQuery("SELECT").WithArgs("username").WillReturnError(errors.New("error while getting user id"))
+	_, status, err := ModerationGetUserQuestions(1, "username", 0, 30)
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if status != http.StatusInternalServerError {
+		t.Errorf("Expected status %d, got %d", http.StatusInternalServerError, status)
+	}
+}
+
+func TestModerationQuestionSuccess(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Error while creating mock: %s", err.Error())
+	}
+	database.DB = db
+
+	// test with success
+	mock.ExpectQuery("SELECT").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"is_moderator"}).AddRow(1))
+	mock.ExpectQuery("SELECT").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"is_admin"}).AddRow(1))
+	mock.ExpectQuery("SELECT").WithArgs("username").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+	mock.ExpectQuery("SELECT").WithArgs(1, 0, 30).WillReturnRows(sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"}))
+	_, status, err := ModerationGetUserQuestions(1, "username", 0, 30)
+	if err != nil {
+		t.Error("Expected nil, got", err)
+	}
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if status != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, status)
 	}
 }
