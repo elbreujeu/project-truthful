@@ -12,6 +12,18 @@ import (
 )
 
 func helloWorld(c *gin.Context) {
+	rateLimitExceeded, err := checkAndUpdateRateLimit(c.ClientIP())
+	if err != nil {
+		log.Printf("Error while checking rate limit: %s\n", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "error while checking rate limit", "error": err.Error()})
+		return
+	}
+	if rateLimitExceeded {
+		log.Printf("Rate limit exceeded for ip %s\n", c.ClientIP())
+		c.JSON(http.StatusTooManyRequests, gin.H{"message": "rate limit exceeded"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Hello world !"})
 }
 

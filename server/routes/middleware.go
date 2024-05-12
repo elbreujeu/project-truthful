@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"project_truthful/client/database"
 	"project_truthful/client/token"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -52,4 +53,38 @@ func moderationLogging(moderatorId int, action string, targetId int) error {
 		log.Printf("Error logging moderation action %s by moderator %d, %v\n", action, moderatorId, err)
 	}
 	return err
+}
+
+// true : rate limit exceeded
+// false : rate limit not exceeded
+func checkAndUpdateRateLimit(userIp string) (bool, error) {
+	// get latest rate limit
+	rateLimit, err := database.GetRateLimit(userIp, database.DB)
+
+	if err != nil {
+		log.Printf("Error getting rate limit for ip %s, %v\n", userIp, err)
+		return false, err
+	}
+
+	// if last request was more than 1 hour ago, reset request count
+	if rateLimit.LastRequestTime.Add(1 * time.Hour).Before(time.Now()) {
+		err = database.ResetRateLimit(userIp, database.DB)
+		if err != nil {
+			log.Printf("Error resetting rate limit for ip %s, %v\n", userIp, err)
+			return false, err
+		}
+		return false, nil
+	}
+
+	err = database.IncrementRateLimit(userIp, database.DB)
+	if err != nil {
+		log.Printf("Error incrementing rate limit for ip %s, %v\n", userIp, err)
+		return false, err
+	}
+
+	if rateLimit.RequestCount > 100 {
+		return true, nil
+	} else {
+		return false, nil
+	}
 }
