@@ -90,3 +90,13 @@ type PromoteUserInfos struct {
 	UserId      int    `json:"user_id"`
 	PromoteType string `json:"promote_type"`
 }
+
+type BanUserInfos struct {
+	UserId   int    `json:"user_id"`
+	Duration int    `json:"duration"` // in hours, if 0, then it's permanent
+	Reason   string `json:"reason"`
+}
+
+type PardonUserInfos struct {
+	BanId int `json:"ban_id"`
+}
