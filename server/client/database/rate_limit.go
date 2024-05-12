@@ -17,8 +17,7 @@ func GetRateLimit(ip string, db *sql.DB) (models.RateLimit, error) {
 			return models.RateLimit{}, err
 		}
 		return models.RateLimit{IpAddress: ip, RequestCount: 0, LastRequestTime: time.Now()}, nil
-	}
-	if err != nil {
+	} else if err != nil {
 		log.Printf("Error getting rate limit for ip %s, %v\n", ip, err)
 		return models.RateLimit{}, err
 	}
