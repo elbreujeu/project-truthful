@@ -504,6 +504,58 @@ func moderationGetUserQuestions(c *gin.Context) {
 	c.JSON(http.StatusOK, questions)
 }
 
+func banUser(c *gin.Context) {
+	log.Printf("Received request to ban user from ip %s\n", c.ClientIP())
+
+	requesterId, _, err := parseAndVerifyAccessToken(c)
+	if err != nil {
+		return
+	}
+
+	var infos models.BanUserInfos
+	err = c.ShouldBindJSON(&infos)
+	if err != nil {
+		log.Printf("Error while parsing request body: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "error while parsing request body", "error": err.Error()})
+		return
+	}
+
+	banId, code, err := client.BanUser(infos.UserId, requesterId, infos.Duration, infos.Reason)
+	if err != nil {
+		log.Printf("Error while banning user: %s\n", err.Error())
+		c.JSON(code, gin.H{"message": "error while banning user", "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "user banned", "ban_id": banId})
+}
+
+func pardonUser(c *gin.Context) {
+	log.Printf("Received request to pardon user from ip %s\n", c.ClientIP())
+
+	requesterId, _, err := parseAndVerifyAccessToken(c)
+	if err != nil {
+		return
+	}
+
+	var infos models.PardonUserInfos
+	err = c.ShouldBindJSON(&infos)
+	if err != nil {
+		log.Printf("Error while parsing request body: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "error while parsing request body", "error": err.Error()})
+		return
+	}
+
+	pardonId, code, err := client.PardonUser(infos.BanId, requesterId)
+	if err != nil {
+		log.Printf("Error while pardoning user: %s\n", err.Error())
+		c.JSON(code, gin.H{"message": "error while pardoning user", "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "user pardoned", "pardon_id": pardonId})
+}
+
 func SetupRoutes(r *gin.Engine) {
 	r.GET("/hello_world", helloWorld)
 	r.POST("/register", register)
@@ -520,4 +572,6 @@ func SetupRoutes(r *gin.Engine) {
 	r.PUT("/users/update", updateUser)
 	r.POST("/moderation/promote", promoteUser)
 	r.GET("/moderation/get_user_questions/:user", moderationGetUserQuestions)
+	r.POST("/moderation/ban_user", banUser)
+	r.POST("/moderation/pardon_user", pardonUser)
 }

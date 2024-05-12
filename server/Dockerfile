@@ -4,7 +4,7 @@ WORKDIR /
 COPY . .
 
 # Set the entrypoint script
-COPY entrypoint.sh /entrypoint.sh
+COPY /entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Specify the entrypoint script as the entrypoint

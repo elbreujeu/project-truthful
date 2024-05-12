@@ -85,5 +85,32 @@ CREATE TABLE `follow` (
   CONSTRAINT `follow_ibfk_2` FOREIGN KEY (`followed`) REFERENCES `user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+DROP TABLE IF EXISTS `ban`;	
+CREATE TABLE `ban` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int unsigned NOT NULL,
+  `author_id` int unsigned NOT NULL,
+  `reason` varchar(1000) NULL DEFAULT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `expires_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  KEY `author_id` (`author_id`),
+  CONSTRAINT `ban_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`),
+  CONSTRAINT `ban_ibfk_2` FOREIGN KEY (`author_id`) REFERENCES `user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- 2022-10-02 16:12:21
+DROP TABLE IF EXISTS `pardon`;
+CREATE TABLE `pardon` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `ban_id` int unsigned NOT NULL,
+  `pardoner_id` int unsigned NOT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `ban_id` (`ban_id`),
+  KEY `pardoner_id` (`pardoner_id`),
+  CONSTRAINT `pardon_ibfk_1` FOREIGN KEY (`ban_id`) REFERENCES `ban` (`id`),
+  CONSTRAINT `pardon_ibfk_2` FOREIGN KEY (`pardoner_id`) REFERENCES `user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- 2024-05-12 16:09:00
