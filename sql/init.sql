@@ -113,4 +113,18 @@ CREATE TABLE `pardon` (
   CONSTRAINT `pardon_ibfk_2` FOREIGN KEY (`pardoner_id`) REFERENCES `user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+DROP TABLE IF EXISTS `moderation_logging`;
+CREATE TABLE `moderation_logging` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int unsigned NOT NULL,
+  `action` varchar(100) NOT NULL,
+  `target_id` int unsigned NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  KEY `target_id` (`target_id`),
+  CONSTRAINT `moderation_logging_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`),
+  CONSTRAINT `moderation_logging_ibfk_2` FOREIGN KEY (`target_id`) REFERENCES `user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- 2024-05-12 16:09:00
