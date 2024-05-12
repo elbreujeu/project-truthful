@@ -100,3 +100,9 @@ type BanUserInfos struct {
 type PardonUserInfos struct {
 	BanId int `json:"ban_id"`
 }
+
+type RateLimit struct {
+	IpAddress       string
+	RequestCount    int
+	LastRequestTime time.Time
+}

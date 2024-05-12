@@ -127,4 +127,11 @@ CREATE TABLE `moderation_logging` (
   CONSTRAINT `moderation_logging_ibfk_2` FOREIGN KEY (`target_id`) REFERENCES `user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+DROP TABLE IF EXISTS `rate_limit`;
+CREATE TABLE `rate_limit` (
+  `ip_address` varchar(45) NOT NULL PRIMARY KEY,
+  `request_count` int unsigned NOT NULL DEFAULT '0',
+  `last_updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- 2024-05-12 16:09:00
