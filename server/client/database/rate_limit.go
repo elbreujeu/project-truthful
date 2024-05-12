@@ -25,7 +25,7 @@ func GetRateLimit(ip string, db *sql.DB) (models.RateLimit, error) {
 }
 
 func ResetRateLimit(ip string, db *sql.DB) error {
-	_, err := db.Exec("UPDATE rate_limit SET request_count = 0, last_updated = NOW() WHERE ip_address = ?", ip)
+	_, err := db.Exec("UPDATE rate_limit SET request_count = 1, last_updated = NOW() WHERE ip_address = ?", ip)
 	if err != nil {
 		log.Printf("Error resetting rate limit for ip %s, %v\n", ip, err)
 		return err

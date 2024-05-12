@@ -3,6 +3,7 @@ package routes
 import (
 	"log"
 	"net/http"
+	"os"
 	"project_truthful/client/database"
 	"project_truthful/client/token"
 	"time"
@@ -13,6 +14,7 @@ import (
 func SetMiddleware(r *gin.Engine) {
 	r.Use(setCORS)
 	r.Use(setJSONResponse)
+	r.Use(checkAndUpdateRateLimit)
 }
 
 func setCORS(c *gin.Context) {
@@ -57,34 +59,51 @@ func moderationLogging(moderatorId int, action string, targetId int) error {
 
 // true : rate limit exceeded
 // false : rate limit not exceeded
-func checkAndUpdateRateLimit(userIp string) (bool, error) {
+func checkAndUpdateRateLimit(c *gin.Context) {
+	// check if rate limit is enforced in env
+	rateLimitEnforced := os.Getenv("RATE_LIMIT_ENFORCED")
+	if rateLimitEnforced != "true" {
+		c.Next()
+		return
+	}
+
 	// get latest rate limit
-	rateLimit, err := database.GetRateLimit(userIp, database.DB)
+	rateLimit, err := database.GetRateLimit(c.ClientIP(), database.DB)
 
 	if err != nil {
-		log.Printf("Error getting rate limit for ip %s, %v\n", userIp, err)
-		return false, err
+		log.Printf("Error getting rate limit for ip %s, %v\n", c.ClientIP(), err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "error getting rate limit", "error": err.Error()})
+		c.Abort()
+		return
 	}
 
 	// if last request was more than 1 hour ago, reset request count
 	if rateLimit.LastRequestTime.Add(1 * time.Hour).Before(time.Now()) {
-		err = database.ResetRateLimit(userIp, database.DB)
+		err = database.ResetRateLimit(c.ClientIP(), database.DB)
 		if err != nil {
-			log.Printf("Error resetting rate limit for ip %s, %v\n", userIp, err)
-			return false, err
+			log.Printf("Error resetting rate limit for ip %s, %v\n", c.ClientIP(), err)
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "error resetting rate limit", "error": err.Error()})
+			c.Abort()
+			return
 		}
-		return false, nil
+		c.Next()
+		return
 	}
 
-	err = database.IncrementRateLimit(userIp, database.DB)
+	err = database.IncrementRateLimit(c.ClientIP(), database.DB)
 	if err != nil {
-		log.Printf("Error incrementing rate limit for ip %s, %v\n", userIp, err)
-		return false, err
+		log.Printf("Error incrementing rate limit for ip %s, %v\n", c.ClientIP(), err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "error incrementing rate limit", "error": err.Error()})
+		c.Abort()
+		return
 	}
 
 	if rateLimit.RequestCount > 100 {
-		return true, nil
+		c.JSON(http.StatusTooManyRequests, gin.H{"message": "rate limit exceeded"})
+		c.Abort()
+		return
 	} else {
-		return false, nil
+		c.Next()
+		return
 	}
 }
