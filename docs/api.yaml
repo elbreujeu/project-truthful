@@ -6,9 +6,20 @@ info:
   contact:
     email: julien.barrere@epitech.eu
   version: dev
+tags:
+  - name: debug
+    description: Debugging endpoints
+  - name: user
+    description: User endpoints
+  - name: question
+    description: Question endpoints
+  - name: moderation
+    description: Moderation endpoints
 paths:
   /hello_world:
     get:
+      tags:
+        - debug
       summary: Get a hello world message.
       responses:
         '200':
@@ -23,6 +34,8 @@ paths:
                     example: Hello, World!
   /register:
     post:
+      tags:
+        - user
       summary: Register a new user.
       requestBody:
         required: true
@@ -50,6 +63,8 @@ paths:
           description: Bad Request
   /login:
     post:
+      tags:
+        - user
       summary: Log in a user
       requestBody:
         required: true
@@ -71,6 +86,8 @@ paths:
           description: Bad Request
   /refresh_token:
     post:
+      tags:
+        - user
       summary: Refresh access token, need Bearer token in Authorization header.
       responses:
         '200':
@@ -87,6 +104,8 @@ paths:
           description: Bad Request
   /get_user_profile/{user}:
     get:
+      tags:
+        - user
       summary: Get user profile
       parameters:
         - in: path
@@ -163,6 +182,8 @@ paths:
           description: Bad Request
   /follow_user:
     post:
+      tags:
+        - user
       summary: Follow or unfollow a user. Need Bearer token in Authorization header.
       requestBody:
         required: true
@@ -188,6 +209,8 @@ paths:
           description: Not Found
   /ask_question:
     post:
+      tags:
+        - question
       summary: Ask a question. Need Bearer token in Authorization header if user is not anonymous.
       requestBody:
         required: true
@@ -216,6 +239,8 @@ paths:
           description: Not Found
   /get_questions:
     get:
+      tags:
+        - question
       summary: Get all questions. Need Bearer token in Authorization header.
       responses:
         '200':
@@ -252,6 +277,8 @@ paths:
           description: Unauthorized
   /answer_question:
     post:
+      tags:
+        - question
       summary: Answer a question. Need Bearer token in Authorization header.
       requestBody:
         required: true
@@ -277,6 +304,8 @@ paths:
           description: Not Found
   /like_answer:
     post:
+      tags:
+        - question
       summary: Like or unlike an answer. Need Bearer token in Authorization header.
       requestBody:
         required: true
@@ -301,7 +330,9 @@ paths:
         '404':
           description: Not Found
   /delete_answer:
-    delete:
+    post:
+      tags:
+        - question
       summary: Delete an answer. Need Bearer token in Authorization header.
       requestBody:
         required: true
@@ -324,6 +355,8 @@ paths:
           description: Not Found
   /delete_question:
     post:
+      tags:
+        - question
       summary: Delete a question. Need Bearer token in Authorization header.
       requestBody:
         required: true
@@ -346,6 +379,8 @@ paths:
           description: Not Found
   /users/update:
     put:
+      tags:
+        - user
       summary: Update user information. Need Bearer token in Authorization header.
       requestBody:
         required: true
@@ -371,6 +406,8 @@ paths:
           description: Not Found
   /moderation/promote:
     post:
+      tags:
+        - moderation
       summary: Promote a user to moderator or admin. Need Bearer token in Authorization header and admin rights.
       requestBody:
         required: true
@@ -396,6 +433,8 @@ paths:
           description: Not Found
   /moderation/get_user_questions/{user}:
     get:
+      tags:
+        - moderation
       summary: Get all questions asked by a user. Need Bearer token in Authorization header and admin rights.
       parameters:
         - in: path
@@ -441,6 +480,8 @@ paths:
           description: Not Found
   /moderation/ban_user:
     post:
+      tags:
+        - moderation
       summary: Ban a user. Need Bearer token in Authorization header and admin rights. Duration is in hours.
       requestBody:
         required: true
@@ -469,6 +510,8 @@ paths:
           description: Not Found
   /moderation/pardon_user:
     post:
+      tags:
+        - moderation
       summary: Pardon a user. Need Bearer token in Authorization header and admin rights.
       requestBody:
         required: true
