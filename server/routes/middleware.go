@@ -3,6 +3,7 @@ package routes
 import (
 	"log"
 	"net/http"
+	"project_truthful/client/database"
 	"project_truthful/client/token"
 
 	"github.com/gin-gonic/gin"
@@ -42,4 +43,13 @@ func parseAndVerifyAccessToken(c *gin.Context) (int, int, error) {
 		return 0, code, err
 	}
 	return requesterId, http.StatusOK, nil
+}
+
+func moderationLogging(moderatorId int, action string, targetId int) error {
+	err := database.LogModerationAction(moderatorId, action, targetId, database.DB)
+
+	if err != nil {
+		log.Printf("Error logging moderation action %s by moderator %d, %v\n", action, moderatorId, err)
+	}
+	return err
 }

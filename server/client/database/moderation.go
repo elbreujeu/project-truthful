@@ -42,3 +42,21 @@ func PromoteUserToModerator(userId int, db *sql.DB) error {
 	}
 	return nil
 }
+
+func LogModerationAction(moderatorId int, action string, targetId int, db *sql.DB) error {
+	if targetId == 0 {
+		_, err := db.Exec("INSERT INTO moderation_logging (user_id, action) VALUES (?, ?)", moderatorId, action)
+		if err != nil {
+			log.Printf("Error logging moderation action %s by moderator %d, %v\n", action, moderatorId, err)
+			return err
+		}
+		return nil
+	} else {
+		_, err := db.Exec("INSERT INTO moderation_logging (user_id, action, target_id) VALUES (?, ?, ?)", moderatorId, action, targetId)
+		if err != nil {
+			log.Printf("Error logging moderation action %s by moderator %d on target %d, %v\n", action, moderatorId, targetId, err)
+			return err
+		}
+		return nil
+	}
+}

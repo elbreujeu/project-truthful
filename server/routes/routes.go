@@ -457,6 +457,11 @@ func promoteUser(c *gin.Context) {
 		return
 	}
 
+	err = moderationLogging(requesterId, "promoteUser", infos.UserId)
+	if err != nil {
+		log.Printf("Error while logging moderation action: %s\n", err.Error())
+	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "user promoted"})
 }
 
@@ -501,6 +506,11 @@ func moderationGetUserQuestions(c *gin.Context) {
 		return
 	}
 
+	err = moderationLogging(requesterId, "moderationGetUserQuestions", 0)
+	if err != nil {
+		log.Printf("Error while logging moderation action: %s\n", err.Error())
+	}
+
 	c.JSON(http.StatusOK, questions)
 }
 
@@ -527,6 +537,11 @@ func banUser(c *gin.Context) {
 		return
 	}
 
+	err = moderationLogging(requesterId, "banUser", infos.UserId)
+	if err != nil {
+		log.Printf("Error while logging moderation action: %s\n", err.Error())
+	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "user banned", "ban_id": banId})
 }
 
@@ -551,6 +566,11 @@ func pardonUser(c *gin.Context) {
 		log.Printf("Error while pardoning user: %s\n", err.Error())
 		c.JSON(code, gin.H{"message": "error while pardoning user", "error": err.Error()})
 		return
+	}
+
+	err = moderationLogging(requesterId, "pardonUser", 0)
+	if err != nil {
+		log.Printf("Error while logging moderation action: %s\n", err.Error())
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "user pardoned", "pardon_id": pardonId})
