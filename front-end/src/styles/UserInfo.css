@@ -4,7 +4,6 @@ body {
 
 .user-info {
     padding: 10px; /* Adjust the pixel value as needed */
-    /* Create a container element (optional for better styling) */
     margin: 0 auto; /* Center horizontally */
     width: fit-content; /* Adjust width as needed */
     text-align: center; /* Center text elements within */
@@ -15,9 +14,7 @@ body {
   height: 150px;
   border-radius: 50%;
   overflow: hidden;
-  display: flex; /* Enable Flexbox for vertical alignment */
-  justify-content: center; /* Center horizontally within container */
-  align-items: center; /* Center vertically within container */
+  margin: 0 auto; /* Center horizontally */
 }
 
 .profile-picture img {
