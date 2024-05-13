@@ -8,10 +8,6 @@ import { API_URL } from '../Env';
 const Profile = ({ }) => {
     const params = useParams();
     const user = params.user;
-  
-    // Step 1: Create a state variable to store the user data
-    // Step 2: Create a useEffect hook to fetch the user data
-    // Step 3 : Render the user info component with the user data (beware, a new component "UserAnswers" will be added in the future)
 
     const [userData, setUserData] = useState(null);
 

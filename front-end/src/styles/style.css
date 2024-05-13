@@ -1,6 +1,7 @@
 /* colors.css */
 body {
   background-color: #282A36;
+  color: #F8F8F2;
   font-family: 'Fira Code', monospace;
 }
 
@@ -8,6 +9,7 @@ body {
   background-color: #BD93F9;
   border: 0px;
   width: 20rem;
+  height: 2rem;
   color: #F8F8F2;
   font-weight: bold;
 }
@@ -36,4 +38,8 @@ body {
   justify-content: center;
   text-align: center;
   padding: 1rem;
+}
+
+h1 {
+  color: #F8F8F2;
 }
