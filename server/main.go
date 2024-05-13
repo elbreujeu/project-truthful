@@ -23,12 +23,14 @@ func main() {
 	// Create a new Gin engine
 	router := gin.Default()
 
-	// Enable CORS and allow all origins
-	// TODO: Research it and change it to a more secure way
-	router.Use(cors.Default())
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowAllOrigins = true
+	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "HEAD", "OPTIONS", "DELETE"}
+	corsConfig.AllowHeaders = []string{"Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"}
+	corsConfig.AllowCredentials = true
 
-	// Add middleware
-	routes.SetMiddleware(router)
+	// sets router to use corsConfig
+	router.Use(cors.New(corsConfig))
 
 	// Setup routes
 	routes.SetupRoutes(router)

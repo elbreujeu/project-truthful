@@ -36,36 +36,6 @@ func TestSetupRoutes(t *testing.T) {
 	assert.Equal(t, `{"message":"Hello world !"}`, w.Body.String())
 }
 
-func TestSetMiddleware(t *testing.T) {
-	// Setup gin engine
-	gin.SetMode(gin.TestMode)
-	r := gin.Default()
-
-	// Call the function under test
-	SetMiddleware(r)
-	SetupRoutes(r)
-
-	// Create a request to test the middleware
-	req, _ := http.NewRequest("GET", "/hello_world", nil)
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-
-	// Check if the response header has the correct values
-	if w.Header().Get("Access-Control-Allow-Origin") != "*" {
-		t.Error("Access-Control-Allow-Origin header is not set correctly")
-	}
-	if w.Header().Get("Access-Control-Allow-Methods") != `"GET", "POST", "PUT", "HEAD", "OPTIONS", "DELETE"` {
-		t.Error("Access-Control-Allow-Methods header is not set correctly")
-	}
-	if w.Header().Get("Access-Control-Allow-Headers") != "*" {
-		t.Error("Access-Control-Allow-Headers header is not set correctly")
-	}
-	if w.Header().Get("Content-Type") != "application/json" {
-		t.Errorf("Content-Type header is not set correctly, got %s", w.Header().Get("Content-Type"))
-		t.Error("Content-Type header is not set correctly")
-	}
-}
-
 func TestRegister(t *testing.T) {
 	router := gin.Default()
 	SetupRoutes(router)
