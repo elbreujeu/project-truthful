@@ -40,6 +40,18 @@ body {
   padding: 1rem;
 }
 
+.success_box {
+  background-color: #50FA7B;
+  border: 1px solid #34D399;
+  color: #F8F8F2;
+  width: 25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1rem;
+}
+
 h1 {
   color: #F8F8F2;
 }
