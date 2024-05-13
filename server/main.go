@@ -24,6 +24,7 @@ func main() {
 	router := gin.Default()
 
 	corsConfig := cors.DefaultConfig()
+	// TODO: Not safe for production, change to specific origins
 	corsConfig.AllowAllOrigins = true
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "HEAD", "OPTIONS", "DELETE"}
 	corsConfig.AllowHeaders = []string{"Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"}
