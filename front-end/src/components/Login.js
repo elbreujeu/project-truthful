@@ -45,6 +45,11 @@ const Login = () => {
               className='text_box'
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleLogin();
+                }
+              }}
           />
         <label className='text' style={{alignSelf: 'flex-start', marginTop:'0.5rem', marginBottom: '0.5rem'}}>Password</label>
         <input 
@@ -53,6 +58,11 @@ const Login = () => {
             className='text_box'
             value={password} 
             onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleLogin();
+              }
+            }}
         />
         <button 
             className="button" 
