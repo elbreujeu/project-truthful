@@ -56,11 +56,13 @@ const UserInfo = (userData) => {
             <div className="profile-picture"> {/* Wrap the image in a .profile-picture element */}
                 <img src="https://i.imgur.com/Jvh1OQm.jpeg" alt="Profile" />
             </div>
+
+            <p><strong>{userInfo.display_name}</strong></p> {/* Display name */}
             <p>@{userInfo.username}</p> {/* Username */}
-            <p>{userInfo.display_name}</p> {/* Display name */}
+
             <div className="profile-stats">
                 <a href={`/profile/${userInfo.username}/followers`}>{userInfo.follower_count} followers</a> {/* Follower count */}
-                <p>{userInfo.answer_count} answers</p> {/* Answer count */}
+                {userInfo.answer_count} answers {/* Answer count */}
                 <a href={`/profile/${userInfo.username}/following`}>{userInfo.following_count} following</a> {/* Following count */}
             </div>
             <button className="button" onClick={followUser}>Follow</button> {/* Follow button TODO : add a route in backend to check if the user is following the user. If so, turn the button into an "unfollow button */}

@@ -2,6 +2,12 @@ body {
     margin: 0; /* Reset default margin for consistent padding */
 }
 
+a {
+  color: #F8F8F2; /* Change link color to F8F8F2 */
+  text-decoration: none; /* Remove underline from links */
+  font-weight: bold; /* Make the text bold */
+}
+
 .user-info {
     padding: 10px; /* Adjust the pixel value as needed */
     margin: 0 auto; /* Center horizontally */

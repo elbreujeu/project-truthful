@@ -6,6 +6,7 @@ body {
 }
 
 .button {
+  margin: 0.5rem;
   background-color: #BD93F9;
   border: 0px;
   width: 20rem;
