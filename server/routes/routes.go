@@ -196,16 +196,17 @@ func followUser(c *gin.Context) {
 	}
 
 	var message string
+	var code int
 	if infos.Follow {
-		_, err = client.FollowUser(requesterId, infos.UserId)
+		code, err = client.FollowUser(requesterId, infos.UserId)
 		message = "User followed"
 	} else {
-		_, err = client.UnfollowUser(requesterId, infos.UserId)
+		code, err = client.UnfollowUser(requesterId, infos.UserId)
 		message = "User unfollowed"
 	}
 	if err != nil {
 		log.Printf("Error while following user: %s\n", err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "error while following user", "error": err.Error()})
+		c.JSON(code, gin.H{"message": "error while following user", "error": err.Error()})
 		return
 	}
 

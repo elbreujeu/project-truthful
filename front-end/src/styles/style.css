@@ -1,13 +1,16 @@
 /* colors.css */
 body {
   background-color: #282A36;
+  color: #F8F8F2;
   font-family: 'Fira Code', monospace;
 }
 
 .button {
+  margin: 0.5rem;
   background-color: #BD93F9;
   border: 0px;
   width: 20rem;
+  height: 2rem;
   color: #F8F8F2;
   font-weight: bold;
 }
@@ -36,4 +39,20 @@ body {
   justify-content: center;
   text-align: center;
   padding: 1rem;
+}
+
+.success_box {
+  background-color: #50FA7B;
+  border: 1px solid #34D399;
+  color: #F8F8F2;
+  width: 25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1rem;
+}
+
+h1 {
+  color: #F8F8F2;
 }

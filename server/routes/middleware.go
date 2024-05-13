@@ -12,18 +12,8 @@ import (
 )
 
 func SetMiddleware(r *gin.Engine) {
-	r.Use(setCORS)
 	r.Use(setJSONResponse)
 	r.Use(checkAndUpdateRateLimit)
-}
-
-func setCORS(c *gin.Context) {
-	// note: maybe not secured
-	// TODO: check this
-	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-	c.Writer.Header().Set("Access-Control-Allow-Methods", `"GET", "POST", "PUT", "HEAD", "OPTIONS", "DELETE"`)
-	c.Writer.Header().Set("Access-Control-Allow-Headers", "*")
-	c.Next()
 }
 
 func setJSONResponse(c *gin.Context) {
