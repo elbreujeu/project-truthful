@@ -32,12 +32,12 @@ services:
     volumes:
       - ./cert:/cert
   
-  # front-end:
-  #   build: ./front-end
-  #   ports:
-  #     - "3000:3000"
-  #   env_file:
-  #     - .env
+  front-end:
+    build: ./front-end
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
 
 volumes:
   mysql-data:

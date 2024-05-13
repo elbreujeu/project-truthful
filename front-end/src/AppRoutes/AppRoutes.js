@@ -4,6 +4,7 @@ import Home from '../components/Home';
 import HelloWorld from '../components/HelloWorld';
 import Login from '../components/Login';
 import Register from '../components/Register';
+import Profile from '../components/Profile';
 
 const AppRoutes = () => (
   <Routes>
@@ -11,6 +12,7 @@ const AppRoutes = () => (
     <Route exact path="/hello_world" element={<HelloWorld/>} />
     <Route exact path="/login" element={<Login/>} />
     <Route exact path="/register" element={<Register/>} />
+    <Route exact path="/profile/:user" element={<Profile />} />
   </Routes>
 );
 
