@@ -4,13 +4,13 @@ FROM node:latest
 # Set the working directory
 WORKDIR /app
 
-# Copy the package.json and package-lock.json files to the container
+# Copy package.json and package-lock.json files
 COPY package*.json ./
 
-# Install the dependencies
+# Install dependencies during build (not copy)
 RUN npm install
 
-# Copy the rest of the application code to the container
+# Copy the rest of the application code
 COPY . .
 
 # Specify the command to run the React app
