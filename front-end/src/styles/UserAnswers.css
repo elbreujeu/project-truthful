@@ -5,3 +5,17 @@
     margin: 0 auto;
     margin-bottom: 10px;
 }
+
+.pseudo {
+    font-size: 0.8rem;
+    color: #FF5555;
+    margin-left: 10px;
+}
+
+.date {
+    font-style: italic;
+    color: lightgrey;
+    font-size: 0.8rem;
+    margin-left: 10px;
+    margin-bottom: 0;
+}

@@ -45,7 +45,11 @@ const UserAnswers = ({ user }) => {
   };
 
   const handleLikeCountClick = (answerId) => {
-    // Logic to redirect to the page showing users who liked the answer
+    window.location.href = `/answers/${answerId}/likes`;
+  };
+
+  const handleAuthorClick = (authorUsername) => {
+    window.location.href = `/profile/${authorUsername}`;
   };
 
   return (
@@ -58,19 +62,18 @@ const UserAnswers = ({ user }) => {
     >
       {answers.map(answer => (
         <div key={answer.id} className="answer">
-          <h3>Question: {answer.question_text}</h3>
-          {!answer.is_author_anonymous && (
+          <h3>{answer.question_text}</h3>
+          {!answer.is_author_anonymous && answer.author.display_name && (
             <>
-              {answer.author.display_name && <p>Author Display Name: {answer.author.display_name}</p>}
-              {answer.author.username && <p>Author Username: {answer.author.username}</p>}
+              <span onClick={() => handleAuthorClick(answer.author.username)}>{answer.author.display_name}</span>
             </>
           )}
           <p>Answer: {answer.answer_text}</p>
-          <p>Date Answered: {new Date(answer.date_answered).toLocaleString()}</p>
           <button onClick={() => handleLike(answer.id)}>Like</button>
           <span onClick={() => handleLikeCountClick(answer.id)}>
             {answer.like_count} Likes
           </span>
+          <p className='date'>{new Date(answer.date_answered).toLocaleString()}</p>
         </div>
       ))}
     </InfiniteScroll>
