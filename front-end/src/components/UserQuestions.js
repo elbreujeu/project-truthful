@@ -79,6 +79,29 @@ const QuestionList = ({ user }) => {
   }
   };
 
+  const deleteQuestion = async (questionId) => {
+    // makes a DELETE request to the API to delete the question
+    const response = await fetch(`${API_URL}/delete_question`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        question_id: questionId
+      })
+    });
+    if (!response.ok) {
+      console.error('Error deleting question');
+      return;
+    }
+    // if the question was deleted successfully, delete the question from the DOM
+    if (response.ok){
+    const questionBox = document.querySelector(`.question-box[question-id="${questionId}"]`);
+    questionBox.remove();
+  }
+  }
+
   return (
     <InfiniteScroll
       dataLength={questions.length}
@@ -101,6 +124,7 @@ const QuestionList = ({ user }) => {
               <input type='text' placeholder='Type your answer...' />
               <button onClick={() => sendAnswer(question.id)}>Send</button>
             </div>
+            <button className='delete-question' onClick={() => deleteQuestion(question.id)}>Delete</button>
           </div>
         ))
       )}
