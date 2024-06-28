@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import UserInfo from './UserInfo';
+import UserAnswers from './UserAnswers'
 import { useEffect } from 'react';
 import { useState } from 'react';
 import { API_URL } from '../Env';
@@ -32,6 +33,7 @@ const Profile = ({ }) => {
     return (
       <div>
         <UserInfo userInfo={userData} />
+        <UserAnswers user={user} />
         {/* Render the UserAnswers component here */}
       </div>
     );
