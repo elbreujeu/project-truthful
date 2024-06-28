@@ -41,7 +41,21 @@ const UserAnswers = ({ user }) => {
   };
 
   const handleLike = (answerId) => {
-    // Logic to handle liking an answer
+    const cookieElement = document.cookie.split('; ').find(row => row.startsWith('token='));
+    const token = cookieElement ? cookieElement.split('=')[1] : null;
+    if (!token) {
+        console.error('No token found');
+        window.location.href = '/login';
+    }
+
+    fetch(`${API_URL}/like_answer`, {
+      method: 'POST',
+      body: JSON.stringify({ answer_id: answerId, like: true }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    })
   };
 
   const handleLikeCountClick = (answerId) => {
@@ -62,13 +76,13 @@ const UserAnswers = ({ user }) => {
     >
       {answers.map(answer => (
         <div key={answer.id} className="answer">
-          <h3>{answer.question_text}</h3>
+          <h3 className='question'>{answer.question_text}</h3>
           {!answer.is_author_anonymous && answer.author.display_name && (
             <>
-              <span onClick={() => handleAuthorClick(answer.author.username)}>{answer.author.display_name}</span>
+              <span onClick={() => handleAuthorClick(answer.author.username)} className='author'>{answer.author.display_name}</span>
             </>
           )}
-          <p>Answer: {answer.answer_text}</p>
+          <p>{answer.answer_text}</p>
           <button onClick={() => handleLike(answer.id)}>Like</button>
           <span onClick={() => handleLikeCountClick(answer.id)}>
             {answer.like_count} Likes

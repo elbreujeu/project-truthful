@@ -288,6 +288,10 @@ func getQuestions(c *gin.Context) {
 		return
 	}
 
+	if len(questions) == 0 {
+		c.JSON(http.StatusOK, gin.H{})
+		return
+	}
 	c.JSON(http.StatusOK, questions)
 }
 
