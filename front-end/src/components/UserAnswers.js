@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import { API_URL } from '../Env';
+import '../styles/UserAnswers.css';
 
 
 const UserAnswers = ({ user }) => {
