@@ -7,6 +7,7 @@ import Register from '../components/Register';
 import Profile from '../components/Profile';
 import Follows from '../components/Follows';
 import UserQuestions from '../components/UserQuestions';
+import ModerationSearch from '../components/ModerationSearch';
 
 const AppRoutes = () => (
   <Routes>
@@ -18,6 +19,7 @@ const AppRoutes = () => (
     <Route exact path="/profile/:user/followers" element={<Follows />} />
     <Route exact path="/profile/:user/following" element={<Follows />} />
     <Route exact path="/questions" element={<UserQuestions />} />
+    <Route exact path="/moderation" element={<ModerationSearch />} />
   </Routes>
 );
 
