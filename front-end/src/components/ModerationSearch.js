@@ -15,9 +15,9 @@ function ModerationSearch() {
 
     
     const [answers, setAnswers] = useState([]);
-    const [hasMore, setHasMore] = useState(true);
-    const [start, setStart] = useState(0);
-    const count = 10; // Number of answers to load per request
+    const [hasMoreAnswers, setHasMoreAnswers] = useState(true);
+    const [startAnswers, setStartAnswers] = useState(0);
+    const countAnswers = 10; // Number of answers to load per request
 
     const handleInputChange = (e) => {
         setInputValue(e.target.value);
@@ -67,7 +67,7 @@ function ModerationSearch() {
 
     const fetchAnswers = async () => {
         try {
-          const response = await fetch(`${API_URL}/get_user_profile/${userInfo.username}?start=${start}&count=${count}`);
+          const response = await fetch(`${API_URL}/get_user_profile/${userInfo.username}?start=${startAnswers}&count=${countAnswers}`);
           if (!response.ok) {
             setError('Failed to fetch answers');
           }
@@ -78,13 +78,13 @@ function ModerationSearch() {
             // Combine new answers with existing ones, avoiding duplicates
             const combinedAnswers = [...answers, ...newAnswers.filter(newAnswer => !answers.some(answer => answer.id === newAnswer.id))];
             setAnswers(combinedAnswers);
-            setStart(prevStart => prevStart + count);
+            setStartAnswers(prevStart => prevStart + countAnswers);
     
-            if (newAnswers.length < count) {
-              setHasMore(false);
+            if (newAnswers.length < countAnswers) {
+              setHasMoreAnswers(false);
             }
           } else {
-            setHasMore(false);
+            setHasMoreAnswers(false);
           }
         } catch (error) {
             setError('Error fetching answers');
@@ -157,8 +157,8 @@ function ModerationSearch() {
         } else {
             setUserAnswerDisplay(false);
             setAnswers([]);
-            setHasMore(true);
-            setStart(0);
+            setHasMoreAnswers(true);
+            setStartAnswers(0);
             return;
         }
     };
@@ -170,8 +170,8 @@ function ModerationSearch() {
         setDisciplineUser(false);
         setUserAnswerDisplay(false);
         setAnswers([]);
-        setHasMore(true);
-        setStart(0);
+        setHasMoreAnswers(true);
+        setStartAnswers(0);
     }
 
     return (
@@ -219,7 +219,7 @@ function ModerationSearch() {
                 <InfiniteScroll
                     dataLength={answers.length}
                     next={fetchAnswers}
-                    hasMore={hasMore}
+                    hasMore={hasMoreAnswers}
                     endMessage={<p>No more answers</p>}
                 >
                     {answers.map(answer => (
