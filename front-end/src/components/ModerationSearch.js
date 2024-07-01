@@ -10,6 +10,7 @@ function ModerationSearch() {
     const [userInfo, setUserInfo] = useState(null);
     const [disciplineUser, setDisciplineUser] = useState('');
     const [userAnswerDisplay, setUserAnswerDisplay] = useState('');
+    const [userQuestionDisplay, setUserQuestionDisplay] = useState('');
     const cookieElement = document.cookie.split('; ').find(row => row.startsWith('token='));
     const token = cookieElement ? cookieElement.split('=')[1] : null;
 
@@ -18,6 +19,11 @@ function ModerationSearch() {
     const [hasMoreAnswers, setHasMoreAnswers] = useState(true);
     const [startAnswers, setStartAnswers] = useState(0);
     const countAnswers = 10; // Number of answers to load per request
+
+    const [questions, setQuestions] = useState([]);
+    const [hasMoreQuestions, setHasMoreQuestions] = useState(true);
+    const [startQuestions, setStartQuestions] = useState(0);
+    const countQuestions = 10; // Number of questions to load per request
 
     const handleInputChange = (e) => {
         setInputValue(e.target.value);
@@ -91,6 +97,40 @@ function ModerationSearch() {
         }
     };
 
+    const fetchQuestions = async () => {
+        try {
+            const response = await fetch(`${API_URL}/moderation/get_user_questions/${userInfo.username}?start=${startQuestions}&count=${countQuestions}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (!response.ok) {
+                setError('Failed to fetch questions');
+            }
+            const newQuestions = await response.json();
+
+            console.log("startQuestions: ", startQuestions); // debug
+            console.log("countQuestions: ", countQuestions); // debug
+            console.log("response: ", response); // debug
+            console.log("newQuestions: ", newQuestions); // debug
+
+            if (newQuestions) {
+                // Combine new questions with existing ones, avoiding duplicates
+                const combinedQuestions = [...questions, ...newQuestions.filter(newQuestion => !questions.some(question => question.id === newQuestion.id))];
+                setQuestions(combinedQuestions);
+                setStartQuestions(prevStart => prevStart + countQuestions);
+            
+                if (newQuestions.length < countQuestions) {
+                    setHasMoreQuestions(false);
+                }
+            } else {
+                setHasMoreQuestions(false);
+            }
+        } catch (error) {
+            setError('Error fetching questions');
+        }
+    };
+
     const handleUserSubmit = (e) => {
         if (!CheckInputEmpty(e)) {
             return;
@@ -151,6 +191,12 @@ function ModerationSearch() {
 
     const handleUserAnswers = () => {
         if (!userAnswerDisplay) {
+            // resets the questions in case they were displayed before
+            setUserQuestionDisplay(false);
+            setQuestions([]);
+            setHasMoreQuestions(true);
+            setStartQuestions(0);
+
             setUserAnswerDisplay(true);
             fetchAnswers();
             return;
@@ -163,15 +209,42 @@ function ModerationSearch() {
         }
     };
 
+    const handleUserQuestions = () => {
+        if (!userQuestionDisplay) {
+            // resets the answers in case they were displayed before
+            setUserAnswerDisplay(false);
+            setAnswers([]);
+            setHasMoreAnswers(true);
+            setStartAnswers(0);
+
+            setUserQuestionDisplay(true);
+            fetchQuestions();
+            console.log("fetching questions") // debug
+            return;
+        } else {
+            setUserQuestionDisplay(false);
+            setQuestions([]);
+            setHasMoreQuestions(true);
+            setStartQuestions(0);
+            return;
+        }
+    };
+
     const resetHandlers = () => {
         setError('');
         setSuccess('');
         setUserInfo(null);
         setDisciplineUser(false);
+
         setUserAnswerDisplay(false);
         setAnswers([]);
         setHasMoreAnswers(true);
         setStartAnswers(0);
+
+        setUserQuestionDisplay(false);
+        setQuestions([]);
+        setHasMoreQuestions(true);
+        setStartQuestions(0);
     }
 
     return (
@@ -199,6 +272,7 @@ function ModerationSearch() {
                     <p>Number of followings: {userInfo.following_count}</p>
                     <button onClick={handleDisciplineUser}>Discipline User</button>
                     <button onClick={handleUserAnswers}>List User answers</button>
+                    <button onClick={handleUserQuestions}>List User questions</button>
                 </div>
             )}
             {disciplineUser && (
@@ -231,6 +305,28 @@ function ModerationSearch() {
                             <p>{answer.answer_text}</p>
                             <p>{answer.like_count} Likes</p>
                             <p className='date'>{new Date(answer.date_answered).toLocaleString()}</p>
+                        </div>
+                    ))}
+                </InfiniteScroll>
+            )}
+            {userQuestionDisplay && (
+                <InfiniteScroll
+                    dataLength={questions.length}
+                    next={fetchQuestions}
+                    hasMore={hasMoreQuestions}
+                    endMessage={<p>No more questions</p>}
+                >
+                    {questions.map(question => (
+                        <div key={question.id} className="answer">
+                            <h3>{question.text}</h3>
+                            <p>{question.answer_count} Answers</p>
+                            <p className='date'>{new Date(question.created_at).toLocaleString()}</p>
+                            <p>Question ID: {question.id}</p>
+                            <p>Is Author Anonymous: {question.is_author_anonymous ? 'Yes' : 'No'}</p>
+                            <p>Author ID: {question.author.id ? question.author.id : "Anonymous"}</p>
+                            <p>Author Username: {question.author.username ? question.author.username : "Anonymous"} </p>
+                            <p>Author Display Name: {question.author.display_name ? question.author.display_name : "Anonymous"}</p>
+                            <p>Receiver ID: {question.receiver_id}</p>
                         </div>
                     ))}
                 </InfiniteScroll>
