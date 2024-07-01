@@ -1,0 +1,6 @@
+Implement routes for :
+- Checking if user has liked post
+- Checking if user is admin/moderator
+- Checking if user is banned
+- Checking if user is following another user
+- Box to ask question to user
