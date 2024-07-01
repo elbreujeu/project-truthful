@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import '../styles/style.css';
 import { API_URL } from '../Env';
+import InfiniteScroll from 'react-infinite-scroll-component';
 
 function ModerationSearch() {
     const [inputValue, setInputValue] = useState('');
@@ -8,8 +9,15 @@ function ModerationSearch() {
     const [success, setSuccess] = useState('');
     const [userInfo, setUserInfo] = useState(null);
     const [disciplineUser, setDisciplineUser] = useState('');
+    const [userAnswerDisplay, setUserAnswerDisplay] = useState('');
     const cookieElement = document.cookie.split('; ').find(row => row.startsWith('token='));
     const token = cookieElement ? cookieElement.split('=')[1] : null;
+
+    
+    const [answers, setAnswers] = useState([]);
+    const [hasMore, setHasMore] = useState(true);
+    const [start, setStart] = useState(0);
+    const count = 10; // Number of answers to load per request
 
     const handleInputChange = (e) => {
         setInputValue(e.target.value);
@@ -57,6 +65,32 @@ function ModerationSearch() {
             });
     };
 
+    const fetchAnswers = async () => {
+        try {
+          const response = await fetch(`${API_URL}/get_user_profile/${userInfo.username}?start=${start}&count=${count}`);
+          if (!response.ok) {
+            setError('Failed to fetch answers');
+          }
+          const data = await response.json();
+          const newAnswers = data.answers;
+    
+          if (newAnswers) {
+            // Combine new answers with existing ones, avoiding duplicates
+            const combinedAnswers = [...answers, ...newAnswers.filter(newAnswer => !answers.some(answer => answer.id === newAnswer.id))];
+            setAnswers(combinedAnswers);
+            setStart(prevStart => prevStart + count);
+    
+            if (newAnswers.length < count) {
+              setHasMore(false);
+            }
+          } else {
+            setHasMore(false);
+          }
+        } catch (error) {
+            setError('Error fetching answers');
+        }
+    };
+
     const handleUserSubmit = (e) => {
         if (!CheckInputEmpty(e)) {
             return;
@@ -77,8 +111,6 @@ function ModerationSearch() {
             setError('Invalid duration');
             return;
         }
-
-        console.log('Banning user', userInfo.id, 'for', durationInt, 'days with reason:', reason)
 
         fetch(`${API_URL}/moderation/ban_user`, {
             method: 'POST',
@@ -117,11 +149,29 @@ function ModerationSearch() {
         }
     };
 
+    const handleUserAnswers = () => {
+        if (!userAnswerDisplay) {
+            setUserAnswerDisplay(true);
+            fetchAnswers();
+            return;
+        } else {
+            setUserAnswerDisplay(false);
+            setAnswers([]);
+            setHasMore(true);
+            setStart(0);
+            return;
+        }
+    };
+
     const resetHandlers = () => {
         setError('');
         setSuccess('');
         setUserInfo(null);
         setDisciplineUser(false);
+        setUserAnswerDisplay(false);
+        setAnswers([]);
+        setHasMore(true);
+        setStart(0);
     }
 
     return (
@@ -148,6 +198,7 @@ function ModerationSearch() {
                     <p>Number of followers: {userInfo.follower_count}</p>
                     <p>Number of followings: {userInfo.following_count}</p>
                     <button onClick={handleDisciplineUser}>Discipline User</button>
+                    <button onClick={handleUserAnswers}>List User answers</button>
                 </div>
             )}
             {disciplineUser && (
@@ -163,6 +214,26 @@ function ModerationSearch() {
                         <button type="submit">Submit</button>
                     </form>
                 </div>
+            )}
+            {userAnswerDisplay && (
+                <InfiniteScroll
+                    dataLength={answers.length}
+                    next={fetchAnswers}
+                    hasMore={hasMore}
+                    endMessage={<p>No more answers</p>}
+                >
+                    {answers.map(answer => (
+                        <div key={answer.id} className="answer">
+                            <h3 className='question'>{answer.question_text}</h3>
+                            {!answer.is_author_anonymous && answer.author.display_name && (
+                                <p>Author display name: {answer.author.display_name} Author username: {answer.author.username}</p>
+                            )}
+                            <p>{answer.answer_text}</p>
+                            <p>{answer.like_count} Likes</p>
+                            <p className='date'>{new Date(answer.date_answered).toLocaleString()}</p>
+                        </div>
+                    ))}
+                </InfiniteScroll>
             )}
         </div>
     );
