@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_URL } from '../Env';
+import { API_URL, clientId } from '../Env';
 import '../styles/style.css';
 import '../styles/Login.css';
+import { GoogleLogin } from '@react-oauth/google';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -31,7 +32,16 @@ const Login = () => {
       console.error(error);
       setError("An error occurred while logging in, please try again later");
     }
-};
+  };
+
+  const handleGoogleSuccess = async (response) => {
+    console.log(response);
+  };
+
+  const handleGoogleFailure = async (response) => {
+    console.log(response);
+    setError("An error occurred while logging in with Google, please try again later");
+  };
 
   return (
     <div className="background-color" style={{display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100vh'}}>
@@ -71,6 +81,13 @@ const Login = () => {
         >
             Login
         </button>
+        <GoogleLogin
+          buttonText="Login with Google"
+          clientId={clientId}
+          onSuccess={(response) => handleGoogleSuccess(response)}
+          onError={(response) => handleGoogleFailure(response)}
+          cookiePolicy={'single_host_origin'}
+        />
         <p className="alt_text" style={{marginTop: '0rem', alignSelf: 'center'}}>Forgot password ?</p>
       </div>
     </div>
