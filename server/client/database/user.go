@@ -86,3 +86,29 @@ func UpdateUserInformations(id int, displayName string, email string, db *sql.DB
 	}
 	return nil
 }
+
+func GetOAuthProvider(provider string, db *sql.DB) (int, error) {
+	var id int
+	err := db.QueryRow("SELECT id FROM oauth_provider WHERE name = ?", provider).Scan(&id)
+	if err != nil && err != sql.ErrNoRows {
+		log.Printf("Error getting oauth provider id for provider %s, %v\n", provider, err)
+		return 0, err
+	}
+	if err == sql.ErrNoRows {
+		return 0, sql.ErrNoRows
+	}
+	return id, nil
+}
+
+func GetUserIdBySubject(providerId int, subject string, db *sql.DB) (int, error) {
+	var id int
+	err := db.QueryRow("SELECT user_id FROM oauth_login WHERE oauth_provider_id = ? AND subject_id = ?", providerId, subject).Scan(&id)
+	if err != nil && err != sql.ErrNoRows {
+		log.Printf("Error getting user id for subject %s, %v\n", subject, err)
+		return 0, err
+	}
+	if err == sql.ErrNoRows {
+		return 0, sql.ErrNoRows
+	}
+	return id, nil
+}
