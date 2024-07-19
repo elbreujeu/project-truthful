@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_URL, clientId } from '../Env';
+import { API_URL, GOOGLE_CLIENT_ID } from '../Env';
 import '../styles/style.css';
 import '../styles/Login.css';
 import { GoogleLogin } from '@react-oauth/google';
@@ -83,7 +83,7 @@ const Login = () => {
         </button>
         <GoogleLogin
           buttonText="Login with Google"
-          clientId={clientId}
+          clientId={GOOGLE_CLIENT_ID}
           onSuccess={(response) => handleGoogleSuccess(response)}
           onError={(response) => handleGoogleFailure(response)}
           cookiePolicy={'single_host_origin'}
