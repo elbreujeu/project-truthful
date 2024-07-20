@@ -1,16 +1,19 @@
 package token
 
 import (
+	"context"
 	"crypto/rsa"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"project_truthful/models"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
+	"google.golang.org/api/idtoken"
 )
 
 var jwtPublicKey *rsa.PublicKey
@@ -99,4 +102,38 @@ func ParseAccessToken(c *gin.Context) (string, int, error) {
 		return "", http.StatusBadRequest, errors.New("missing fields")
 	}
 	return accessToken[7:], http.StatusOK, nil
+}
+
+func VerifyGoogleToken(requestToken string) (models.GoogleInfos, error) {
+	clientId := os.Getenv("REACT_APP_GOOGLE_CLIENT_ID")
+
+	// Verify the token
+	payload, err := idtoken.Validate(context.Background(), requestToken, clientId)
+	if err != nil {
+		log.Printf("Unable to verify token: %v", err)
+		return models.GoogleInfos{}, err
+	}
+
+	// Extract the claims
+	var googleInfos models.GoogleInfos
+	claims := payload.Claims
+
+	googleInfos.Issuer, _ = claims["iss"].(string)
+	googleInfos.AuthorizedParty, _ = claims["azp"].(string)
+	googleInfos.Audience, _ = claims["aud"].(string)
+	googleInfos.Subject, _ = claims["sub"].(string)
+	googleInfos.Email, _ = claims["email"].(string)
+	googleInfos.EmailVerified, _ = claims["email_verified"].(bool)
+	googleInfos.NotValidBefore, _ = claims["nbf"].(int64)
+	googleInfos.Name, _ = claims["name"].(string)
+	googleInfos.Picture, _ = claims["picture"].(string)
+	googleInfos.GivenName, _ = claims["given_name"].(string)
+	googleInfos.FamilyName, _ = claims["family_name"].(string)
+	googleInfos.IssuedAt, _ = claims["iat"].(int64)
+	googleInfos.ExpiryDate, _ = claims["exp"].(int64)
+	googleInfos.JwtId, _ = claims["jti"].(string)
+
+	// prints the whole claims
+	fmt.Printf("Claims: %v\n", claims) // debug
+	return googleInfos, nil
 }
