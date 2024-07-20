@@ -402,3 +402,42 @@ func TestGetUserIdBySubjectError(t *testing.T) {
 		t.Errorf("error was expected while getting user id for subject %s, but got nil", subject)
 	}
 }
+
+func TestInsertUserWithDisplayName(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating sqlmock: %s", err.Error())
+	}
+	defer db.Close()
+
+	mock.ExpectExec("INSERT INTO user").WithArgs("username", "display_name", "password", "email", "birthdate").WillReturnResult(sqlmock.NewResult(4, 1))
+
+	id, err := InsertUserWithDisplayName("username", "display_name", "password", "email", "birthdate", db)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if id != 4 {
+		t.Errorf("id should be 4, but is %d", id)
+	}
+	if err != nil {
+		t.Errorf("Error while inserting user: %s", err.Error())
+	}
+}
+
+func TestInsertUserWithDisplayNameError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating sqlmock: %s", err.Error())
+	}
+	defer db.Close()
+
+	mock.ExpectExec("INSERT INTO user").WithArgs("username_error", "display_name", "password", "email", "birthdate").WillReturnError(errors.New("error"))
+
+	_, err = InsertUserWithDisplayName("username_error", "display_name", "password", "email", "birthdate", db)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err == nil {
+		t.Errorf("Error should not be nil")
+	}
+}

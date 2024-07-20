@@ -14,6 +14,15 @@ func InsertUser(username string, password string, email string, birthdate string
 	return result.LastInsertId()
 }
 
+func InsertUserWithDisplayName(username string, displayName string, password string, email string, birthdate string, db *sql.DB) (int64, error) {
+	result, err := db.Exec("INSERT INTO user (username, display_name, password, email, birthdate) VALUES (?, ?, ?, ?, ?)", username, displayName, password, email, birthdate)
+	if err != nil {
+		log.Printf("Error inserting user %s, %v\n", username, err)
+		return 0, err
+	}
+	return result.LastInsertId()
+}
+
 func CheckUsernameExists(username string, db *sql.DB) (bool, error) {
 	var count int
 	err := db.QueryRow("SELECT COUNT(*) FROM user WHERE username = ?", username).Scan(&count)
@@ -100,8 +109,8 @@ func GetOAuthProvider(provider string, db *sql.DB) (int, error) {
 	return id, nil
 }
 
-func GetUserIdBySubject(providerId int, subject string, db *sql.DB) (int, error) {
-	var id int
+func GetUserIdBySubject(providerId int, subject string, db *sql.DB) (int64, error) {
+	var id int64
 	err := db.QueryRow("SELECT user_id FROM oauth_login WHERE oauth_provider_id = ? AND subject_id = ?", providerId, subject).Scan(&id)
 	if err != nil && err != sql.ErrNoRows {
 		log.Printf("Error getting user id for subject %s, %v\n", subject, err)
@@ -111,4 +120,13 @@ func GetUserIdBySubject(providerId int, subject string, db *sql.DB) (int, error)
 		return 0, sql.ErrNoRows
 	}
 	return id, nil
+}
+
+func InsertOauthLogin(providerId int, subject string, userId int64, db *sql.DB) error {
+	_, err := db.Exec("INSERT INTO oauth_login (oauth_provider_id, subject_id, user_id) VALUES (?, ?, ?)", providerId, subject, userId)
+	if err != nil {
+		log.Printf("Error inserting oauth login for provider %d, subject %s and user %d, %v\n", providerId, subject, userId, err)
+		return err
+	}
+	return nil
 }
