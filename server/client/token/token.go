@@ -106,6 +106,11 @@ func ParseAccessToken(c *gin.Context) (string, int, error) {
 
 func VerifyGoogleToken(requestToken string) (models.GoogleInfos, error) {
 	clientId := os.Getenv("REACT_APP_GOOGLE_CLIENT_ID")
+	isTest := os.Getenv("IS_TEST") == "true"
+
+	if isTest {
+		return models.GoogleInfos{Name: "toto123", Email: "toto123@gmail.com", Subject: "123456"}, nil
+	}
 
 	// Verify the token
 	payload, err := idtoken.Validate(context.Background(), requestToken, clientId)
