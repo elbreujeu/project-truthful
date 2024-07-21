@@ -36,6 +36,26 @@ const Login = () => {
 
   const handleGoogleSuccess = async (response) => {
     console.log(response);
+    try {
+      const newResponse = await fetch(API_URL + '/oauth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: "google", token: response.credential }),
+      });
+      if (newResponse.status === 200) {
+        const { token } = await newResponse.json();
+        document.cookie = `token=${token}`;
+        navigate('/feed');
+      } else {
+        const returnMessage = await newResponse.json();
+        const errorMessage = returnMessage.error.charAt(0).toUpperCase() + returnMessage.error.slice(1);
+        console.error(returnMessage)
+        setError(errorMessage);
+      }
+    } catch (error) {
+      console.error(error);
+      setError("An error occurred while logging in with Google, please try again later");
+    }
   };
 
   const handleGoogleFailure = async (response) => {
