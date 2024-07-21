@@ -35,7 +35,6 @@ const Login = () => {
   };
 
   const handleGoogleSuccess = async (response) => {
-    console.log(response);
     try {
       const newResponse = await fetch(API_URL + '/oauth/login', {
         method: 'POST',
