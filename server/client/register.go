@@ -3,11 +3,14 @@ package client
 import (
 	"errors"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/mail"
 	"os"
+	"project_truthful/client/basicfuncs"
 	"project_truthful/client/database"
 	"project_truthful/models"
+	"strconv"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -122,5 +125,49 @@ func Register(infos models.RegisterInfos) (int64, int, error) {
 		return 0, http.StatusInternalServerError, err
 	}
 	log.Printf("User %s created with id %d\n", infos.Username, id)
+	return id, http.StatusCreated, nil
+}
+
+func RegisterOauth(username string, email string, birthdate string) (int64, int, error) {
+	// TODO : write tests
+	log.Printf("Creating user %s\n", username)
+	isTest := os.Getenv("IS_TEST") == "true"
+
+	var usernameForDb string = basicfuncs.DeleteNonAlphanumeric(username)
+	err := isUsernameValid(usernameForDb)
+	if err != nil {
+		// creates a new random username
+		for i := 0; isUsernameValid(usernameForDb) != nil && i < 1000; i++ {
+			usernameForDb = "user-" + strconv.Itoa(rand.Intn(1000000))
+			if isTest {
+				usernameForDb = "user-1000"
+			}
+		}
+	}
+
+	err = isEmailValid(email)
+	if err != nil {
+		return 0, http.StatusBadRequest, err
+	}
+
+	err = isBirthdateValid(birthdate)
+	if err != nil {
+		return 0, http.StatusBadRequest, err
+	}
+
+	// if display name length is more than 20 characters, it is truncated, if it is empty, it is set to the username
+	var displayName string
+	if len(username) > 20 {
+		displayName = username[:20]
+	} else if len(username) == 0 {
+		displayName = usernameForDb
+	} else {
+		displayName = username
+	}
+	id, err := database.InsertUserWithDisplayName(usernameForDb, displayName, "", email, birthdate, database.DB)
+	if err != nil {
+		return 0, http.StatusInternalServerError, err
+	}
+	log.Printf("User %s created with id %d\n", username, id)
 	return id, http.StatusCreated, nil
 }

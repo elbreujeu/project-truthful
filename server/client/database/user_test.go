@@ -311,3 +311,133 @@ func TestUpdateUserInformationsError(t *testing.T) {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
+
+func TestGetOAuthProvider(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
+	mock.ExpectQuery("SELECT id FROM oauth_provider WHERE name = \\?").WithArgs("google").WillReturnRows(rows)
+
+	id, err := GetOAuthProvider("google", db)
+	if err != nil {
+		t.Errorf("error was not expected while getting oauth provider: %s", err)
+	}
+	if id != 1 {
+		t.Errorf("unexpected provider id: %d", id)
+	}
+}
+
+func TestGetOAuthProviderNoRows(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	mock.ExpectQuery("SELECT id FROM oauth_provider WHERE name = \\?").WithArgs("google").WillReturnError(sql.ErrNoRows)
+
+	_, err = GetOAuthProvider("google", db)
+	if err == nil {
+		t.Errorf("error was expected while getting oauth provider, but got nil")
+	}
+}
+
+func TestGetOAuthProvierError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	mock.ExpectQuery("SELECT id FROM oauth_provider WHERE name = \\?").WithArgs("google").WillReturnError(errors.New("database error"))
+
+	_, err = GetOAuthProvider("google", db)
+	if err == nil {
+		t.Errorf("error was expected while getting oauth provider, but got nil")
+	}
+}
+func TestGetUserIdBySubject(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	providerID := 1
+	subject := "subject123"
+
+	mock.ExpectQuery("SELECT user_id FROM oauth_login WHERE oauth_provider_id = \\? AND subject_id = \\?").
+		WithArgs(providerID, subject).
+		WillReturnRows(sqlmock.NewRows([]string{"user_id"}).AddRow(1))
+
+	userID, err := GetUserIdBySubject(providerID, subject, db)
+	if err != nil {
+		t.Errorf("error was not expected while getting user id for subject %s: %s", subject, err)
+	}
+	if userID != 1 {
+		t.Errorf("unexpected user id: %d", userID)
+	}
+}
+
+func TestGetUserIdBySubjectError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer db.Close()
+
+	providerID := 1
+	subject := "subject123"
+
+	mock.ExpectQuery("SELECT user_id FROM oauth_login WHERE oauth_provider_id = \\? AND subject_id = \\?").
+		WithArgs(providerID, subject).
+		WillReturnError(sql.ErrNoRows)
+
+	_, err = GetUserIdBySubject(providerID, subject, db)
+	if err == nil {
+		t.Errorf("error was expected while getting user id for subject %s, but got nil", subject)
+	}
+}
+
+func TestInsertUserWithDisplayName(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating sqlmock: %s", err.Error())
+	}
+	defer db.Close()
+
+	mock.ExpectExec("INSERT INTO user").WithArgs("username", "display_name", "password", "email", "birthdate").WillReturnResult(sqlmock.NewResult(4, 1))
+
+	id, err := InsertUserWithDisplayName("username", "display_name", "password", "email", "birthdate", db)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if id != 4 {
+		t.Errorf("id should be 4, but is %d", id)
+	}
+	if err != nil {
+		t.Errorf("Error while inserting user: %s", err.Error())
+	}
+}
+
+func TestInsertUserWithDisplayNameError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating sqlmock: %s", err.Error())
+	}
+	defer db.Close()
+
+	mock.ExpectExec("INSERT INTO user").WithArgs("username_error", "display_name", "password", "email", "birthdate").WillReturnError(errors.New("error"))
+
+	_, err = InsertUserWithDisplayName("username_error", "display_name", "password", "email", "birthdate", db)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err == nil {
+		t.Errorf("Error should not be nil")
+	}
+}

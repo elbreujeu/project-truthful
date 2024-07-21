@@ -3,6 +3,7 @@ package basicfuncs
 import (
 	"math/rand"
 	"strconv"
+	"strings"
 )
 
 func GenerateRandomString(n int) string {
@@ -26,4 +27,17 @@ func ConvertQueryParameterToInt(rawParameterString string, defaultValue int) (in
 		}
 	}
 	return toReturn, nil
+}
+
+func DeleteNonAlphanumeric(s string) string {
+	var result strings.Builder
+	for i := 0; i < len(s); i++ {
+		b := s[i]
+		if ('a' <= b && b <= 'z') ||
+			('A' <= b && b <= 'Z') ||
+			('0' <= b && b <= '9') {
+			result.WriteByte(b)
+		}
+	}
+	return result.String()
 }

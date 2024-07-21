@@ -1,12 +1,14 @@
 package routes
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"project_truthful/client"
 	"project_truthful/client/basicfuncs"
 	"project_truthful/client/token"
 	"project_truthful/models"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -581,6 +583,35 @@ func pardonUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "user pardoned", "pardon_id": pardonId})
 }
 
+func oauthLogin(c *gin.Context) {
+	log.Printf("Received request to login with oauth from ip %s\n", c.ClientIP())
+
+	var infos models.OauthLoginInfos
+	err := c.ShouldBindJSON(&infos)
+	if err != nil {
+		log.Printf("Error while parsing request body: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "error while parsing request body", "error": err.Error()})
+		return
+	}
+
+	var token string
+	var code int
+	if strings.ToLower(infos.Provider) == "google" {
+		token, code, err = client.GoogleLogin(infos.Provider, infos.Token)
+		if err != nil {
+			log.Printf("Error while logging in with google: %s\n", err.Error())
+			c.JSON(http.StatusBadRequest, gin.H{"message": "error while logging in with google", "error": err.Error()})
+			return
+		}
+		fmt.Printf("Token: %s, code: %d\n", token, code) // debug, remove
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid provider"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "logged in with oauth successfuly", "token": token})
+}
+
 func SetupRoutes(r *gin.Engine) {
 	r.GET("/hello_world", helloWorld)
 	r.POST("/register", register)
@@ -599,4 +630,5 @@ func SetupRoutes(r *gin.Engine) {
 	r.GET("/moderation/get_user_questions/:user", moderationGetUserQuestions)
 	r.POST("/moderation/ban_user", banUser)
 	r.POST("/moderation/pardon_user", pardonUser)
+	r.POST("/oauth/login", oauthLogin)
 }

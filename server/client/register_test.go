@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"net/http"
 	"os"
 	"project_truthful/client/database"
@@ -212,4 +213,133 @@ func TestRegisterValid(t *testing.T) {
 		t.Errorf("Error: id is %d instead of %d", id, 4)
 	}
 	os.Setenv("IS_TEST", "false")
+}
+
+func TestRegisterOauthEmailInvalid(t *testing.T) {
+	var mock sqlmock.Sqlmock
+	var err error
+	database.DB, mock, err = sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating mock: %s", err.Error())
+	}
+
+	username := "username"
+	email := "InvalidEmail"
+	birthdate := "2000-01-01"
+
+	mock.ExpectQuery("SELECT COUNT").WithArgs(username).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+	mock.ExpectQuery("SELECT COUNT").WithArgs(email).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+
+	_, _, err = RegisterOauth(username, email, birthdate)
+	if err == nil {
+		t.Errorf("No error while creating user with invalid email")
+	}
+}
+
+func TestRegisterOauthBirthdateInvalid(t *testing.T) {
+	var mock sqlmock.Sqlmock
+	var err error
+	database.DB, mock, err = sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating mock: %s", err.Error())
+	}
+
+	username := "username"
+	email := "email@mail.com"
+	birthdate := "2025-01-01"
+
+	mock.ExpectQuery("SELECT COUNT").WithArgs(username).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1)) // In order to trigger username auto-generation
+	mock.ExpectQuery("SELECT COUNT").WithArgs(email).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+
+	_, _, err = RegisterOauth(username, email, birthdate)
+	if err == nil {
+		t.Errorf("No error while creating user with invalid birthdate")
+	}
+}
+
+func TestRegisterOauthErrorInserting(t *testing.T) {
+	var mock sqlmock.Sqlmock
+	var err error
+	database.DB, mock, err = sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating mock: %s", err.Error())
+	}
+
+	username := "username"
+	email := "email@email.com"
+	birthdate := "2000-01-01"
+
+	mock.ExpectQuery("SELECT COUNT").WithArgs(username).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+	mock.ExpectQuery("SELECT COUNT").WithArgs(email).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+	mock.ExpectExec("INSERT INTO user").WithArgs(username, username, "", email, birthdate).WillReturnError(errors.New("Error while inserting user"))
+
+	id, returnStatus, err := RegisterOauth(username, email, birthdate)
+	if err == nil {
+		t.Errorf("No error while creating user with invalid email, were expecting an error while inserting user")
+	}
+	if returnStatus != http.StatusInternalServerError {
+		t.Errorf("Error: return status is %d instead of %d", returnStatus, http.StatusInternalServerError)
+	}
+	if id != 0 {
+		t.Errorf("Error: id is %d instead of %d", id, 0)
+	}
+}
+
+func TestRegisterOauthValid(t *testing.T) {
+	var mock sqlmock.Sqlmock
+	var err error
+	database.DB, mock, err = sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating mock: %s", err.Error())
+	}
+
+	username := "username"
+	email := "email@email.com"
+	birthdate := "2000-01-01"
+
+	mock.ExpectQuery("SELECT COUNT").WithArgs(username).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+	mock.ExpectQuery("SELECT COUNT").WithArgs(email).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+	mock.ExpectExec("INSERT INTO user").WithArgs(username, username, "", email, birthdate).WillReturnResult(sqlmock.NewResult(4, 1))
+
+	id, returnStatus, err := RegisterOauth(username, email, birthdate)
+	if err != nil {
+		t.Errorf("Error while creating user: %s", err.Error())
+	}
+	if returnStatus != http.StatusCreated {
+		t.Errorf("Error: return status is %d instead of %d", returnStatus, http.StatusCreated)
+	}
+	if id != 4 {
+		t.Errorf("Error: id is %d instead of %d", id, 4)
+	}
+}
+
+func TestRegisterOauthValidLongUsername(t *testing.T) {
+	os.Setenv("IS_TEST", "true")
+
+	var mock sqlmock.Sqlmock
+	var err error
+	database.DB, mock, err = sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating mock: %s", err.Error())
+	}
+
+	username := "User User User Toooo Looooooooong 166514 23132"
+	email := "email@email.com"
+	birthdate := "2000-01-01"
+
+	mock.ExpectQuery("SELECT COUNT").WithArgs("user-1000").WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+	mock.ExpectQuery("SELECT COUNT").WithArgs(email).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+	mock.ExpectExec("INSERT INTO user").WithArgs("user-1000", "User User User Toooo", "", email, birthdate).WillReturnResult(sqlmock.NewResult(4, 1))
+
+	id, returnStatus, err := RegisterOauth(username, email, birthdate)
+	os.Setenv("IS_TEST", "false")
+	if err != nil {
+		t.Errorf("Error while creating user: %s", err.Error())
+	}
+	if returnStatus != http.StatusCreated {
+		t.Errorf("Error: return status is %d instead of %d", returnStatus, http.StatusCreated)
+	}
+	if id != 4 {
+		t.Errorf("Error: id is %d instead of %d", id, 4)
+	}
 }

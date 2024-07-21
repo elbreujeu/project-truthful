@@ -42,3 +42,40 @@ func Login(infos models.LoginInfos) (string, int, error) {
 	}
 	return accessToken, http.StatusOK, nil
 }
+
+func GoogleLogin(provider string, requestToken string) (string, int, error) {
+	googleInfos, err := token.VerifyGoogleToken(requestToken)
+	if err != nil {
+		return "", http.StatusBadRequest, err
+	}
+
+	// gets provider id for google
+	providerId, err := database.GetOAuthProvider(provider, database.DB)
+	if err != nil {
+		return "", http.StatusInternalServerError, err
+	}
+
+	// checks if the user exists in the database
+	userId, err := database.GetUserIdBySubject(providerId, googleInfos.Subject, database.DB)
+	// flag to create a new user and a new entry in oauth_login
+	if err != nil && err == sql.ErrNoRows {
+		var code int
+		userId, code, err = RegisterOauth(googleInfos.Name, googleInfos.Email, "2000-01-01") // TODO: add birthdate
+		if err != nil {
+			return "", code, err
+		}
+
+		// add to oauth_login table
+		err = database.InsertOauthLogin(providerId, googleInfos.Subject, userId, database.DB)
+		if err != nil {
+			return "", http.StatusInternalServerError, err
+		}
+	} else if err != nil {
+		return "", http.StatusInternalServerError, err
+	}
+	userToken, err := token.GenerateJWT(int(userId))
+	if err != nil {
+		return "", http.StatusInternalServerError, err
+	}
+	return userToken, http.StatusOK, nil
+}

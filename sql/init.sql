@@ -134,4 +134,25 @@ CREATE TABLE `rate_limit` (
   `last_updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+DROP TABLE IF EXISTS `oauth_provider`;
+CREATE TABLE `oauth_provider` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+INSERT INTO `oauth_provider` (`name`) VALUES ('Google');
+
+DROP TABLE IF EXISTS `oauth_login`;
+CREATE TABLE `oauth_login` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int unsigned NOT NULL,
+  `oauth_provider_id` int unsigned NOT NULL,
+  `subject_id` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  KEY `oauth_provider_id` (`oauth_provider_id`),
+  CONSTRAINT `oauth_login_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`),
+  CONSTRAINT `oauth_login_ibfk_2` FOREIGN KEY (`oauth_provider_id`) REFERENCES `oauth_provider` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- 2024-05-12 16:09:00
