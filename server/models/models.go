@@ -106,3 +106,25 @@ type RateLimit struct {
 	RequestCount    int
 	LastRequestTime time.Time
 }
+
+type OauthLoginInfos struct {
+	Provider string `json:"provider"`
+	Token    string `json:"token"`
+}
+
+type GoogleInfos struct {
+	Issuer          string `json:"iss"`
+	AuthorizedParty string `json:"azp"`
+	Audience        string `json:"aud"`
+	Subject         string `json:"sub"`
+	Email           string `json:"email"`
+	EmailVerified   bool   `json:"email_verified"`
+	NotValidBefore  int64  `json:"nbf"`
+	Name            string `json:"name"`
+	Picture         string `json:"picture"`
+	GivenName       string `json:"given_name"`
+	FamilyName      string `json:"family_name"`
+	IssuedAt        int64  `json:"iat"`
+	ExpiryDate      int64  `json:"exp"`
+	JwtId           string `json:"jti"`
+}

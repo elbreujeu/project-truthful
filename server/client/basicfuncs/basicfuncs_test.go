@@ -29,3 +29,25 @@ func TestConvertQueryParameterToInt(t *testing.T) {
 		t.Errorf("Expected error, got no error")
 	}
 }
+func TestDeleteNonAlphanumeric(t *testing.T) {
+	input := "Hello, World! 123"
+	expected := "HelloWorld123"
+	result := DeleteNonAlphanumeric(input)
+	if result != expected {
+		t.Errorf("Expected '%s', got '%s'", expected, result)
+	}
+
+	input = "Testing @#$%^&*()_+"
+	expected = "Testing"
+	result = DeleteNonAlphanumeric(input)
+	if result != expected {
+		t.Errorf("Expected '%s', got '%s'", expected, result)
+	}
+
+	input = "NoSpecialCharacters"
+	expected = "NoSpecialCharacters"
+	result = DeleteNonAlphanumeric(input)
+	if result != expected {
+		t.Errorf("Expected '%s', got '%s'", expected, result)
+	}
+}

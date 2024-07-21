@@ -8,6 +8,7 @@ import Profile from '../components/Profile';
 import Follows from '../components/Follows';
 import UserQuestions from '../components/UserQuestions';
 import ModerationSearch from '../components/ModerationSearch';
+import AuthCallback from '../components/AuthCallback';
 
 const AppRoutes = () => (
   <Routes>
@@ -20,6 +21,7 @@ const AppRoutes = () => (
     <Route exact path="/profile/:user/following" element={<Follows />} />
     <Route exact path="/questions" element={<UserQuestions />} />
     <Route exact path="/moderation" element={<ModerationSearch />} />
+    <Route exact path="/auth/callback" element={<AuthCallback />} />
   </Routes>
 );
 

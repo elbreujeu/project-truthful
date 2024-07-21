@@ -14,6 +14,15 @@ func InsertUser(username string, password string, email string, birthdate string
 	return result.LastInsertId()
 }
 
+func InsertUserWithDisplayName(username string, displayName string, password string, email string, birthdate string, db *sql.DB) (int64, error) {
+	result, err := db.Exec("INSERT INTO user (username, display_name, password, email, birthdate) VALUES (?, ?, ?, ?, ?)", username, displayName, password, email, birthdate)
+	if err != nil {
+		log.Printf("Error inserting user %s, %v\n", username, err)
+		return 0, err
+	}
+	return result.LastInsertId()
+}
+
 func CheckUsernameExists(username string, db *sql.DB) (bool, error) {
 	var count int
 	err := db.QueryRow("SELECT COUNT(*) FROM user WHERE username = ?", username).Scan(&count)
@@ -82,6 +91,41 @@ func UpdateUserInformations(id int, displayName string, email string, db *sql.DB
 	_, err := db.Exec("UPDATE user SET display_name = ?, email = ? WHERE id = ?", displayName, email, id)
 	if err != nil {
 		log.Printf("Error updating user informations for id %d, %v\n", id, err)
+		return err
+	}
+	return nil
+}
+
+func GetOAuthProvider(provider string, db *sql.DB) (int, error) {
+	var id int
+	err := db.QueryRow("SELECT id FROM oauth_provider WHERE name = ?", provider).Scan(&id)
+	if err != nil && err != sql.ErrNoRows {
+		log.Printf("Error getting oauth provider id for provider %s, %v\n", provider, err)
+		return 0, err
+	}
+	if err == sql.ErrNoRows {
+		return 0, sql.ErrNoRows
+	}
+	return id, nil
+}
+
+func GetUserIdBySubject(providerId int, subject string, db *sql.DB) (int64, error) {
+	var id int64
+	err := db.QueryRow("SELECT user_id FROM oauth_login WHERE oauth_provider_id = ? AND subject_id = ?", providerId, subject).Scan(&id)
+	if err != nil && err != sql.ErrNoRows {
+		log.Printf("Error getting user id for subject %s, %v\n", subject, err)
+		return 0, err
+	}
+	if err == sql.ErrNoRows {
+		return 0, sql.ErrNoRows
+	}
+	return id, nil
+}
+
+func InsertOauthLogin(providerId int, subject string, userId int64, db *sql.DB) error {
+	_, err := db.Exec("INSERT INTO oauth_login (oauth_provider_id, subject_id, user_id) VALUES (?, ?, ?)", providerId, subject, userId)
+	if err != nil {
+		log.Printf("Error inserting oauth login for provider %d, subject %s and user %d, %v\n", providerId, subject, userId, err)
 		return err
 	}
 	return nil
