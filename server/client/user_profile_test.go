@@ -21,7 +21,7 @@ func TestGetUserProfileError(t *testing.T) {
 
 	// tests with error when getting user id
 	mock.ExpectQuery("SELECT id FROM user").WithArgs("toto").WillReturnError(errors.New("error for test"))
-	_, code, err := GetUserProfile("toto", 30, 0)
+	_, code, err := GetUserProfile("toto", 0, 30, 0)
 	if err == nil {
 		t.Errorf("Expected error, got nil")
 	}
@@ -34,7 +34,7 @@ func TestGetUserProfileError(t *testing.T) {
 
 	// tests with profile not found
 	mock.ExpectQuery("SELECT id FROM user").WithArgs("toto").WillReturnError(sql.ErrNoRows)
-	_, code, err = GetUserProfile("toto", 30, 0)
+	_, code, err = GetUserProfile("toto", 0, 30, 0)
 	if err == nil {
 		t.Errorf("Expected error, got nil")
 	}
@@ -48,7 +48,7 @@ func TestGetUserProfileError(t *testing.T) {
 	// tests with error when getting user profile infos
 	mock.ExpectQuery("SELECT id FROM user").WithArgs("toto").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(1).WillReturnError(errors.New("error for test"))
-	_, code, err = GetUserProfile("toto", 30, 0)
+	_, code, err = GetUserProfile("toto", 0, 30, 0)
 	if err == nil {
 		t.Errorf("Expected error, got nil")
 	}
@@ -104,7 +104,7 @@ func TestGetUserProfileSuccess(t *testing.T) {
 	mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(2).WillReturnRows(sqlmock.NewRows([]string{"username", "display_name"}).AddRow("username_author", "display_name_author"))
 	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
 
-	profile, code, err := GetUserProfile("toto", 30, 0)
+	profile, code, err := GetUserProfile("toto", 0, 30, 0)
 
 	if err != nil {
 		t.Errorf("Error while getting user profile: %s", err.Error())
@@ -117,6 +117,9 @@ func TestGetUserProfileSuccess(t *testing.T) {
 	}
 
 	// compares each field of the struct
+	if profile.Id != expected.Id {
+		t.Errorf("Database error: expected %d, got %d", expected.Id, profile.Id)
+	}
 	if profile.Username != expected.Username {
 		t.Errorf("Database error: expected %s, got %s", expected.Username, profile.Username)
 	}
@@ -158,5 +161,134 @@ func TestGetUserProfileSuccess(t *testing.T) {
 	}
 	if profile.Answers[0].IsAuthorAnonymous != expected.Answers[0].IsAuthorAnonymous {
 		t.Errorf("Database error: expected %t, got %t", expected.Answers[0].IsAuthorAnonymous, profile.Answers[0].IsAuthorAnonymous)
+	}
+}
+
+func TestGetUserProfileSuccessUserRequestingSelf(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating sqlmock: %s", err.Error())
+	}
+	defer db.Close()
+	database.DB = db
+
+	creationTime := time.Now()
+	mock.ExpectQuery("SELECT id FROM user").WithArgs("toto").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"username", "display_name"}).AddRow("username", "display_name"))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+	mock.ExpectQuery("SELECT id, question_id, text, created_at FROM answer").WithArgs(1, 0, 30).WillReturnRows(sqlmock.NewRows([]string{"id", "question_id", "text", "created_at"}).AddRow(1, 1, "answer_text", creationTime))
+
+	questionRows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"}).
+		AddRow(1, "question_text", 2, false, 1, creationTime)
+	mock.ExpectQuery("SELECT id, text, author_id, is_author_anonymous, receiver_id, created_at FROM question").WithArgs(1).WillReturnRows(questionRows)
+	mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(2).WillReturnRows(sqlmock.NewRows([]string{"username", "display_name"}).AddRow("username_author", "display_name_author"))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+
+	profile, code, err := GetUserProfile("toto", 1, 30, 0)
+
+	if err != nil {
+		t.Errorf("Error while getting user profile: %s", err.Error())
+	}
+	if code != 200 {
+		t.Errorf("Expected code 200, got %d", code)
+	}
+	if err = mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+
+	if profile.IsRequestingSelf != true {
+		t.Errorf("Expected true, got false")
+	}
+}
+
+func TestGetUserProfileSuccessUserNotFollowing(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating sqlmock: %s", err.Error())
+	}
+	defer db.Close()
+	database.DB = db
+
+	creationTime := time.Now()
+	mock.ExpectQuery("SELECT id FROM user").WithArgs("toto").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"username", "display_name"}).AddRow("username", "display_name"))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+	mock.ExpectQuery("SELECT id, question_id, text, created_at FROM answer").WithArgs(1, 0, 30).WillReturnRows(sqlmock.NewRows([]string{"id", "question_id", "text", "created_at"}).AddRow(1, 1, "answer_text", creationTime))
+
+	questionRows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"}).
+		AddRow(1, "question_text", 2, false, 1, creationTime)
+	mock.ExpectQuery("SELECT id, text, author_id, is_author_anonymous, receiver_id, created_at FROM question").WithArgs(1).WillReturnRows(questionRows)
+	mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(2).WillReturnRows(sqlmock.NewRows([]string{"username", "display_name"}).AddRow("username_author", "display_name_author"))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+
+	// checks if user is followed by the requestern, should return false
+	mock.ExpectQuery("SELECT COUNT").WithArgs(2, 1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+
+	profile, code, err := GetUserProfile("toto", 2, 30, 0)
+
+	if err != nil {
+		t.Errorf("Error while getting user profile: %s", err.Error())
+	}
+	if code != 200 {
+		t.Errorf("Expected code 200, got %d", code)
+	}
+	if err = mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+
+	if profile.IsRequestingSelf != false {
+		t.Errorf("Expected false, got true")
+	}
+	if profile.IsFollowedByRequester != false {
+		t.Errorf("Expected false, got true")
+	}
+}
+
+func TestGetUserProfileSuccessUserFollowing(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating sqlmock: %s", err.Error())
+	}
+	defer db.Close()
+	database.DB = db
+
+	creationTime := time.Now()
+	mock.ExpectQuery("SELECT id FROM user").WithArgs("toto").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"username", "display_name"}).AddRow("username", "display_name"))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM follow").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+	mock.ExpectQuery("SELECT id, question_id, text, created_at FROM answer").WithArgs(1, 0, 30).WillReturnRows(sqlmock.NewRows([]string{"id", "question_id", "text", "created_at"}).AddRow(1, 1, "answer_text", creationTime))
+
+	questionRows := sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"}).
+		AddRow(1, "question_text", 2, false, 1, creationTime)
+	mock.ExpectQuery("SELECT id, text, author_id, is_author_anonymous, receiver_id, created_at FROM question").WithArgs(1).WillReturnRows(questionRows)
+	mock.ExpectQuery("SELECT username, display_name FROM user").WithArgs(2).WillReturnRows(sqlmock.NewRows([]string{"username", "display_name"}).AddRow("username_author", "display_name_author"))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+
+	// checks if user is followed by the requestern, should return false
+	mock.ExpectQuery("SELECT COUNT").WithArgs(2, 1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
+
+	profile, code, err := GetUserProfile("toto", 2, 30, 0)
+
+	if err != nil {
+		t.Errorf("Error while getting user profile: %s", err.Error())
+	}
+	if code != 200 {
+		t.Errorf("Expected code 200, got %d", code)
+	}
+	if err = mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+
+	if profile.IsRequestingSelf != false {
+		t.Errorf("Expected false, got true")
+	}
+	if profile.IsFollowedByRequester != true {
+		t.Errorf("Expected true, got false")
 	}
 }

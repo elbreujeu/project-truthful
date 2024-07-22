@@ -43,13 +43,15 @@ type Answer struct {
 }
 
 type UserProfileInfos struct {
-	Id             int      `json:"id"`
-	Username       string   `json:"username"`
-	DisplayName    string   `json:"display_name"`
-	FollowerCount  int      `json:"follower_count"`
-	FollowingCount int      `json:"following_count"`
-	AnswerCount    int      `json:"answer_count"`
-	Answers        []Answer `json:"answers"`
+	Id                    int      `json:"id"`
+	Username              string   `json:"username"`
+	DisplayName           string   `json:"display_name"`
+	FollowerCount         int      `json:"follower_count"`
+	FollowingCount        int      `json:"following_count"`
+	AnswerCount           int      `json:"answer_count"`
+	IsFollowedByRequester bool     `json:"is_followed_by_requester"`
+	IsRequestingSelf      bool     `json:"is_requesting_user"`
+	Answers               []Answer `json:"answers"`
 }
 
 type FollowUserInfos struct {
