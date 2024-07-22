@@ -40,6 +40,7 @@ type Answer struct {
 	AnswerDate        string      `json:"answer_date"`
 	CreatedAt         time.Time   `json:"date_answered"`
 	LikeCount         int         `json:"like_count"`
+	LikedByRequester  bool        `json:"liked_by_requester"`
 }
 
 type UserProfileInfos struct {
@@ -49,8 +50,8 @@ type UserProfileInfos struct {
 	FollowerCount         int      `json:"follower_count"`
 	FollowingCount        int      `json:"following_count"`
 	AnswerCount           int      `json:"answer_count"`
-	IsFollowedByRequester bool     `json:"is_followed_by_requester"`
-	IsRequestingSelf      bool     `json:"is_requesting_user"`
+	IsFollowedByRequester bool     `json:"followed_by_requester"`
+	IsRequestingSelf      bool     `json:"requesting_user"`
 	Answers               []Answer `json:"answers"`
 }
 

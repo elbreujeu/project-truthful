@@ -70,7 +70,7 @@ func MarkAnswerAsDeleted(answerId int, db *sql.DB) error {
 	return nil
 }
 
-func getAnswers(id int, count int, start int, db *sql.DB) ([]models.Answer, error) {
+func getAnswers(id int, requestingUser int, count int, start int, db *sql.DB) ([]models.Answer, error) {
 	rows, err := db.Query("SELECT id, question_id, text, created_at FROM answer WHERE user_id = ? AND has_been_deleted = 0 ORDER BY created_at DESC LIMIT ?, ?", id, start, count+start)
 	if err != nil {
 		log.Printf("Error getting answers for id %d, %v\n", id, err)
@@ -105,6 +105,17 @@ func getAnswers(id int, count int, start int, db *sql.DB) ([]models.Answer, erro
 		if err != nil {
 			log.Printf("Error getting like count for answer %d, %v\n", answer.Id, err)
 			answer.LikeCount = 0
+		}
+		if requestingUser != 0 {
+			liked, err := CheckLikeExists(requestingUser, answer.Id, db)
+			if err != nil {
+				log.Printf("Error checking if answer %d is liked by user %d, %v\n", answer.Id, requestingUser, err)
+				answer.LikedByRequester = false
+			} else {
+				answer.LikedByRequester = liked
+			}
+		} else {
+			answer.LikedByRequester = false
 		}
 		answers = append(answers, answer)
 	}
