@@ -127,6 +127,18 @@ func refreshToken(c *gin.Context) {
 func getUserProfile(c *gin.Context) {
 	log.Printf("Received request to get user from ip %s\n", c.ClientIP())
 
+	accessToken, _, err := token.ParseAccessToken(c)
+	requesterId := 0
+	var code int
+	if err == nil {
+		requesterId, code, err = token.VerifyJWT(accessToken)
+		if err != nil {
+			log.Printf("Error while checking token: %s\n", err.Error())
+			c.JSON(code, gin.H{"message": "error while checking token", "error": err.Error()})
+			return
+		}
+	}
+
 	username := c.Param("user")
 
 	// parses 2 query parameters, "count" and "start"
@@ -165,7 +177,7 @@ func getUserProfile(c *gin.Context) {
 		count = 30
 	}
 
-	user, code, err := client.GetUserProfile(username, count, start)
+	user, code, err := client.GetUserProfile(username, requesterId, count, start)
 	if err != nil {
 		log.Printf("Error while getting user: %s\n", err.Error())
 		c.JSON(code, gin.H{

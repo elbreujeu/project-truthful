@@ -186,7 +186,7 @@ func TestGetAnswersErrors(t *testing.T) {
 
 	// test with error on first query
 	mock.ExpectQuery("SELECT id, question_id, text, created_at FROM answer").WithArgs(1, 0, 30).WillReturnError(errors.New("error for test"))
-	_, err = getAnswers(1, 30, 0, db)
+	_, err = getAnswers(1, 0, 30, 0, db)
 	if mock.ExpectationsWereMet() != nil {
 		t.Errorf("Error while checking expectations: %s", err.Error())
 	}
@@ -196,7 +196,7 @@ func TestGetAnswersErrors(t *testing.T) {
 
 	// test with wrong type
 	mock.ExpectQuery("SELECT id, question_id, text, created_at FROM answer").WithArgs(1, 0, 30).WillReturnRows(sqlmock.NewRows([]string{"id", "question_id", "text", "created_at"}).AddRow(1, "error", "text", time.Now()))
-	_, err = getAnswers(1, 30, 0, db)
+	_, err = getAnswers(1, 0, 30, 0, db)
 	if mock.ExpectationsWereMet() != nil {
 		t.Errorf("Error while checking expectations: %s", err.Error())
 	}
@@ -208,7 +208,7 @@ func TestGetAnswersErrors(t *testing.T) {
 	mock.ExpectQuery("SELECT id, question_id, text, created_at FROM answer").WithArgs(1, 0, 30).WillReturnRows(sqlmock.NewRows([]string{"id", "question_id", "text", "created_at"}).AddRow(1, 1, "text", time.Now()))
 	mock.ExpectQuery("SELECT id, text, author_id, is_author_anonymous, receiver_id, created_at FROM question").WithArgs(1).WillReturnError(errors.New("error for test"))
 	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1).WillReturnError(errors.New("error for test"))
-	answers, err := getAnswers(1, 30, 0, db)
+	answers, err := getAnswers(1, 0, 30, 0, db)
 	if mock.ExpectationsWereMet() != nil {
 		t.Errorf("Error while checking expectations: %s", err.Error())
 	}
@@ -236,7 +236,7 @@ func TestGetAnswers(t *testing.T) {
 	mock.ExpectQuery("SELECT id, question_id, text, created_at FROM answer").WithArgs(1, 0, 30).WillReturnRows(sqlmock.NewRows([]string{"id", "question_id", "text", "created_at"}).AddRow(1, 1, "text", time.Now()))
 	mock.ExpectQuery("SELECT id, text, author_id, is_author_anonymous, receiver_id, created_at FROM question").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"}).AddRow(1, "text", 0, true, 1, time.Now()))
 	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
-	answers, err := getAnswers(1, 30, 0, db)
+	answers, err := getAnswers(1, 0, 30, 0, db)
 	if err != nil {
 		t.Errorf("Error while getting answers: %s", err.Error())
 	}
@@ -255,6 +255,114 @@ func TestGetAnswers(t *testing.T) {
 	}
 	if answers[0].IsAuthorAnonymous != true {
 		t.Errorf("IsAuthorAnonymous should be true")
+	}
+}
+
+func TestGetAnswersNotLikedByUser(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating sqlmock: %s", err.Error())
+	}
+	defer db.Close()
+
+	mock.ExpectQuery("SELECT id, question_id, text, created_at FROM answer").WithArgs(1, 0, 30).WillReturnRows(sqlmock.NewRows([]string{"id", "question_id", "text", "created_at"}).AddRow(1, 1, "text", time.Now()))
+	mock.ExpectQuery("SELECT id, text, author_id, is_author_anonymous, receiver_id, created_at FROM question").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"}).AddRow(1, "text", 0, true, 1, time.Now()))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1, 1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+	answers, err := getAnswers(1, 1, 30, 0, db)
+	if err != nil {
+		t.Errorf("Error while getting answers: %s", err.Error())
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+
+	if len(answers) != 1 {
+		t.Errorf("Length of answers should be 1")
+	}
+	if answers[0].Author.Id != 0 {
+		t.Errorf("Author id should be 0")
+	}
+	if answers[0].LikeCount != 1 {
+		t.Errorf("Like count should be 1")
+	}
+	if answers[0].IsAuthorAnonymous != true {
+		t.Errorf("IsAuthorAnonymous should be true")
+	}
+	if answers[0].LikedByRequester {
+		t.Errorf("LikedByRequester should be false")
+	}
+}
+
+func TestGetAnswersLikedByUser(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating sqlmock: %s", err.Error())
+	}
+	defer db.Close()
+
+	mock.ExpectQuery("SELECT id, question_id, text, created_at FROM answer").WithArgs(1, 0, 30).WillReturnRows(sqlmock.NewRows([]string{"id", "question_id", "text", "created_at"}).AddRow(1, 1, "text", time.Now()))
+	mock.ExpectQuery("SELECT id, text, author_id, is_author_anonymous, receiver_id, created_at FROM question").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"}).AddRow(1, "text", 0, true, 1, time.Now()))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1, 1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	answers, err := getAnswers(1, 1, 30, 0, db)
+	if err != nil {
+		t.Errorf("Error while getting answers: %s", err.Error())
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+
+	if len(answers) != 1 {
+		t.Errorf("Length of answers should be 1")
+	}
+	if answers[0].Author.Id != 0 {
+		t.Errorf("Author id should be 0")
+	}
+	if answers[0].LikeCount != 1 {
+		t.Errorf("Like count should be 1")
+	}
+	if answers[0].IsAuthorAnonymous != true {
+		t.Errorf("IsAuthorAnonymous should be true")
+	}
+	if !answers[0].LikedByRequester {
+		t.Errorf("LikedByRequester should be true")
+	}
+}
+
+func TestGetAnswersErrorCheckLike(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating sqlmock: %s", err.Error())
+	}
+	defer db.Close()
+
+	mock.ExpectQuery("SELECT id, question_id, text, created_at FROM answer").WithArgs(1, 0, 30).WillReturnRows(sqlmock.NewRows([]string{"id", "question_id", "text", "created_at"}).AddRow(1, 1, "text", time.Now()))
+	mock.ExpectQuery("SELECT id, text, author_id, is_author_anonymous, receiver_id, created_at FROM question").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"id", "text", "author_id", "is_author_anonymous", "receiver_id", "created_at"}).AddRow(1, "text", 0, true, 1, time.Now()))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1, 1).WillReturnError(errors.New("error"))
+	answers, err := getAnswers(1, 1, 30, 0, db)
+	if err != nil {
+		t.Errorf("Error while getting answers: %s", err.Error())
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+
+	if len(answers) != 1 {
+		t.Errorf("Length of answers should be 1")
+	}
+	if answers[0].Author.Id != 0 {
+		t.Errorf("Author id should be 0")
+	}
+	if answers[0].LikeCount != 1 {
+		t.Errorf("Like count should be 1")
+	}
+	if answers[0].IsAuthorAnonymous != true {
+		t.Errorf("IsAuthorAnonymous should be true")
+	}
+	if answers[0].LikedByRequester {
+		t.Errorf("LikedByRequester should be false")
 	}
 }
 

@@ -40,16 +40,19 @@ type Answer struct {
 	AnswerDate        string      `json:"answer_date"`
 	CreatedAt         time.Time   `json:"date_answered"`
 	LikeCount         int         `json:"like_count"`
+	LikedByRequester  bool        `json:"liked_by_requester"`
 }
 
 type UserProfileInfos struct {
-	Id             int      `json:"id"`
-	Username       string   `json:"username"`
-	DisplayName    string   `json:"display_name"`
-	FollowerCount  int      `json:"follower_count"`
-	FollowingCount int      `json:"following_count"`
-	AnswerCount    int      `json:"answer_count"`
-	Answers        []Answer `json:"answers"`
+	Id                    int      `json:"id"`
+	Username              string   `json:"username"`
+	DisplayName           string   `json:"display_name"`
+	FollowerCount         int      `json:"follower_count"`
+	FollowingCount        int      `json:"following_count"`
+	AnswerCount           int      `json:"answer_count"`
+	IsFollowedByRequester bool     `json:"followed_by_requester"`
+	IsRequestingSelf      bool     `json:"requesting_user"`
+	Answers               []Answer `json:"answers"`
 }
 
 type FollowUserInfos struct {
