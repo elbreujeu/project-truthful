@@ -9,6 +9,7 @@ const UserInfo = (userData) => {
     const [errorBox, setErrorBox]  = useState('');
     const [successBox, setSuccessBox]  = useState('');
     const [isFollowing, setIsFollowing] = useState(userInfo.followed_by_requester);
+    const [followerCount, setFollowerCount] = useState(userInfo.follower_count);
     
     
     const cookieElement = document.cookie.split('; ').find(row => row.startsWith('token='));
@@ -48,6 +49,7 @@ const UserInfo = (userData) => {
                 }
                 // Handle successful response here
                 setIsFollowing(true);
+                setFollowerCount(followerCount + 1);
             })
             .catch(error => {
                 console.error(error);
@@ -90,6 +92,7 @@ const UserInfo = (userData) => {
                 }
                 // Handle successful response here
                 setIsFollowing(false);
+                setFollowerCount(followerCount - 1);
             })
             .catch(error => {
                 console.error(error);
@@ -108,7 +111,7 @@ const UserInfo = (userData) => {
             <p>@{userInfo.username}</p> {/* Username */}
 
             <div className="profile-stats">
-                <a href={`/profile/${userInfo.username}/followers`}>{userInfo.follower_count} followers</a> {/* Follower count */}
+                <a href={`/profile/${userInfo.username}/followers`}>{followerCount} followers</a> {/* Follower count */}
                 {userInfo.answer_count} answers {/* Answer count */}
                 <a href={`/profile/${userInfo.username}/following`}>{userInfo.following_count} following</a> {/* Following count */}
             </div>
