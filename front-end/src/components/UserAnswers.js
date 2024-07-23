@@ -10,13 +10,21 @@ const UserAnswers = ({ user }) => {
   const [start, setStart] = useState(0);
   const count = 10; // Number of answers to load per request
 
+  const cookieElement = document.cookie.split('; ').find(row => row.startsWith('token='));
+  const token = cookieElement ? cookieElement.split('=')[1] : null;
+
   useEffect(() => {
     fetchAnswers();
   }, []);
 
   const fetchAnswers = async () => {
     try {
-      const response = await fetch(`${API_URL}/get_user_profile/${user}?start=${start}&count=${count}`);
+      const response = await fetch(`${API_URL}/get_user_profile/${user}?start=${start}&count=${count}`, {
+        headers: token !== null ? {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        } : {}
+      });
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
@@ -40,9 +48,7 @@ const UserAnswers = ({ user }) => {
     }
   };
 
-  const handleLike = (answerId) => {
-    const cookieElement = document.cookie.split('; ').find(row => row.startsWith('token='));
-    const token = cookieElement ? cookieElement.split('=')[1] : null;
+  const handleLike = (answerId, isLiking) => {
     if (!token) {
         console.error('No token found');
         window.location.href = '/login';
@@ -50,12 +56,18 @@ const UserAnswers = ({ user }) => {
 
     fetch(`${API_URL}/like_answer`, {
       method: 'POST',
-      body: JSON.stringify({ answer_id: answerId, like: true }),
+      body: JSON.stringify({ answer_id: answerId, like: isLiking }),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       }
     })
+
+    const likeButton = document.getElementById(`like-button-${answerId}`);
+    likeButton.innerText = isLiking ? 'Unlike' : 'Like';
+
+    const likeCount = document.getElementById(`like-count-${answerId}`);
+    likeCount.innerText = `${isLiking ? parseInt(likeCount.innerText) + 1 : parseInt(likeCount.innerText) - 1} Likes`;
   };
 
   const handleLikeCountClick = (answerId) => {
@@ -83,8 +95,13 @@ const UserAnswers = ({ user }) => {
             </>
           )}
           <p>{answer.answer_text}</p>
-          <button onClick={() => handleLike(answer.id)}>Like</button>
-          <span onClick={() => handleLikeCountClick(answer.id)}>
+          <button id={`like-button-${answer.id}`} onClick={() => {
+            handleLike(answer.id, !answer.liked_by_requester);
+            answer.liked_by_requester = !answer.liked_by_requester;
+          }}>
+            {answer.liked_by_requester ? 'Unlike' : 'Like'}
+          </button>
+          <span id={`like-count-${answer.id}`} onClick={() => handleLikeCountClick(answer.id)}>
             {answer.like_count} Likes
           </span>
           <p className='date'>{new Date(answer.date_answered).toLocaleString()}</p>

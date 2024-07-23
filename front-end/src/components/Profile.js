@@ -6,16 +6,24 @@ import { useEffect } from 'react';
 import { useState } from 'react';
 import { API_URL } from '../Env';
 
-const Profile = ({ }) => {
+const Profile = () => {
     const params = useParams();
     const user = params.user;
+
+    const cookieElement = document.cookie.split('; ').find(row => row.startsWith('token='));
+    const token = cookieElement ? cookieElement.split('=')[1] : null;
 
     const [userData, setUserData] = useState(null);
 
     useEffect(() => {
       const fetchUserData = async () => {
         try {
-          const response = await fetch(`${API_URL}/get_user_profile/${user}`);
+          const response = await fetch(`${API_URL}/get_user_profile/${user}`, {
+            headers: token !== null ? {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            } : {}
+          });
           const data = await response.json();
           setUserData(data);
         } catch (error) {

@@ -8,11 +8,16 @@ const UserInfo = (userData) => {
     const userInfo = userData.userInfo;
     const [errorBox, setErrorBox]  = useState('');
     const [successBox, setSuccessBox]  = useState('');
+    const [isFollowing, setIsFollowing] = useState(userInfo.followed_by_requester);
+    const [followerCount, setFollowerCount] = useState(userInfo.follower_count);
+    
+    
+    const cookieElement = document.cookie.split('; ').find(row => row.startsWith('token='));
+    const token = cookieElement ? cookieElement.split('=')[1] : null;
+
     const followUser = () => {
         console.log('Follow user')
         // gets the "token" cookie
-        const cookieElement = document.cookie.split('; ').find(row => row.startsWith('token='));
-        const token = cookieElement ? cookieElement.split('=')[1] : null;
         if (!token) {
             console.error('No token found');
             window.location.href = '/login';
@@ -43,6 +48,8 @@ const UserInfo = (userData) => {
                     });
                 }
                 // Handle successful response here
+                setIsFollowing(true);
+                setFollowerCount(followerCount + 1);
             })
             .catch(error => {
                 console.error(error);
@@ -84,6 +91,8 @@ const UserInfo = (userData) => {
                     });
                 }
                 // Handle successful response here
+                setIsFollowing(false);
+                setFollowerCount(followerCount - 1);
             })
             .catch(error => {
                 console.error(error);
@@ -102,14 +111,15 @@ const UserInfo = (userData) => {
             <p>@{userInfo.username}</p> {/* Username */}
 
             <div className="profile-stats">
-                <a href={`/profile/${userInfo.username}/followers`}>{userInfo.follower_count} followers</a> {/* Follower count */}
+                <a href={`/profile/${userInfo.username}/followers`}>{followerCount} followers</a> {/* Follower count */}
                 {userInfo.answer_count} answers {/* Answer count */}
                 <a href={`/profile/${userInfo.username}/following`}>{userInfo.following_count} following</a> {/* Following count */}
             </div>
-            {/* Follow button TODO : add a route in backend to check if the user is following the user. If so, turn the button into an "unfollow button */}
-            <button className="button" onClick={followUser}>Follow</button>
-            <p></p>
-            <button className="button" onClick={unfollowUser}>Unfollow</button>
+            {userInfo.is_requesting_self || token === null ? null : (
+                <button className="button" onClick={isFollowing ? unfollowUser : followUser}>
+                   {isFollowing ? 'Unfollow' : 'Follow'}
+                </button>
+            )}
         </div>
     );
 };
