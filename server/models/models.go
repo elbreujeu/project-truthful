@@ -51,7 +51,7 @@ type UserProfileInfos struct {
 	FollowingCount        int      `json:"following_count"`
 	AnswerCount           int      `json:"answer_count"`
 	IsFollowedByRequester bool     `json:"followed_by_requester"`
-	IsRequestingSelf      bool     `json:"requesting_user"`
+	IsRequestingSelf      bool     `json:"is_requesting_self"`
 	Answers               []Answer `json:"answers"`
 }
 
