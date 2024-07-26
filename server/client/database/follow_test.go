@@ -96,3 +96,35 @@ func TestRemoveFollow(t *testing.T) {
 		t.Errorf("Error should not be nil")
 	}
 }
+
+func TestGetFollowers(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Errorf("Error while creating sqlmock: %s", err.Error())
+	}
+	defer db.Close()
+	rows := sqlmock.NewRows([]string{"follower"}).AddRow(1).AddRow(2)
+	mock.ExpectQuery("SELECT follower").WithArgs(1, 2, 0).WillReturnRows(rows)
+	followers, err := GetFollowers(1, 2, 0, db)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err != nil {
+		t.Errorf("Error while getting followers: %s", err.Error())
+	}
+	if len(followers) != 2 {
+		t.Errorf("Expected 2 followers, got %d", len(followers))
+	}
+	if followers[0] != 1 || followers[1] != 2 {
+		t.Errorf("Expected followers to be [1, 2], got %v", followers)
+	}
+
+	mock.ExpectQuery("SELECT follower").WithArgs(1, 2, 0).WillReturnError(errors.New("error"))
+	_, err = GetFollowers(1, 2, 0, db)
+	if mock.ExpectationsWereMet() != nil {
+		t.Errorf("Error while checking expectations: %s", err.Error())
+	}
+	if err == nil {
+		t.Errorf("Error should not be nil")
+	}
+}

@@ -40,3 +40,18 @@ func GetUserProfile(username string, requestingUser int, count int, start int) (
 
 	return infos, http.StatusOK, nil
 }
+
+func GetUserPreview(username string) (models.UserPreview, int, error) {
+	id, err := database.GetUserId(username, database.DB)
+	if err != nil && err != sql.ErrNoRows {
+		return models.UserPreview{}, http.StatusInternalServerError, err
+	}
+	if id == 0 || err == sql.ErrNoRows {
+		return models.UserPreview{}, http.StatusNotFound, errors.New("user not found")
+	}
+	username, displayName, err := database.GetUsernameAndDisplayName(id, database.DB)
+	if err != nil {
+		return models.UserPreview{}, http.StatusInternalServerError, err
+	}
+	return models.UserPreview{Id: int64(id), Username: username, DisplayName: displayName}, http.StatusOK, nil
+}

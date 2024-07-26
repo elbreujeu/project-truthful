@@ -1,9 +1,11 @@
 package client
 
 import (
+	"database/sql"
 	"errors"
 	"net/http"
 	"project_truthful/client/database"
+	"project_truthful/models"
 )
 
 func FollowUser(followerId int, followeeId int) (int, error) {
@@ -59,4 +61,29 @@ func UnfollowUser(followerId int, followeeId int) (int, error) {
 	}
 
 	return http.StatusOK, nil
+}
+
+func GetFollowers(username string, count int, start int) ([]models.UserPreview, int, error) {
+	userId, err := database.GetUserId(username, database.DB)
+	if err != nil && err == sql.ErrNoRows {
+		return []models.UserPreview{}, http.StatusNotFound, errors.New("user not found")
+	} else if err != nil {
+		return []models.UserPreview{}, http.StatusInternalServerError, err
+	}
+
+	followers, err := database.GetFollowers(userId, count, start, database.DB)
+	if err != nil {
+		return []models.UserPreview{}, http.StatusInternalServerError, err
+	}
+
+	var followPreview []models.UserPreview
+	for _, follower := range followers {
+		username, displayName, err := database.GetUsernameAndDisplayName(follower, database.DB)
+		if err != nil {
+			return []models.UserPreview{}, http.StatusInternalServerError, err
+		}
+		followPreview = append(followPreview, models.UserPreview{Id: int64(follower), Username: username, DisplayName: displayName})
+	}
+
+	return followPreview, http.StatusOK, nil
 }

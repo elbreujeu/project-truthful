@@ -32,3 +32,25 @@ func RemoveFollow(followerId int, followedId int, db *sql.DB) error {
 	}
 	return nil
 }
+
+func GetFollowers(userId int, count int, start int, db *sql.DB) ([]int, error) {
+	rows, err := db.Query("SELECT follower FROM follow WHERE followed = ? ORDER BY id DESC LIMIT ? OFFSET ?", userId, count, start)
+	if err != nil {
+		log.Printf("Error getting followers for user %d, %v\n", userId, err)
+		return []int{}, err
+	}
+	defer rows.Close()
+
+	var followers []int
+	for rows.Next() {
+		var follower int
+		err := rows.Scan(&follower)
+		if err != nil {
+			log.Printf("Error scanning follower for user %d, %v\n", userId, err)
+			return []int{}, err
+		}
+		followers = append(followers, follower)
+	}
+
+	return followers, nil
+}

@@ -226,6 +226,7 @@ func TestGetUserProfileSuccessUserNotFollowing(t *testing.T) {
 	mock.ExpectQuery("SELECT COUNT(.+) FROM answer_like").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(1))
 
 	// checks if user is followed by the requestern, should return false
+	// query : err := db.QueryRow("SELECT COUNT(*) FROM follow WHERE follower = ? AND followed = ?", follower, followed).Scan(&count)
 	mock.ExpectQuery("SELECT COUNT").WithArgs(2, 1).WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
 
 	profile, code, err := GetUserProfile("toto", 2, 30, 0)

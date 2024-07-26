@@ -624,6 +624,50 @@ func oauthLogin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "logged in with oauth successfuly", "token": token})
 }
 
+func getFollowers(c *gin.Context) {
+	log.Printf("Received request to get followers from ip %s\n", c.ClientIP())
+
+	username := c.Param("user")
+
+	//get the "count" parameter from query parameters
+	countStr := c.Query("count")
+	startStr := c.Query("start")
+
+	count, err := basicfuncs.ConvertQueryParameterToInt(countStr, 10)
+	if err != nil {
+		log.Printf("Error while parsing count: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "invalid count",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	start, err := basicfuncs.ConvertQueryParameterToInt(startStr, 0)
+	if err != nil {
+		log.Printf("Error while parsing count: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "invalid count",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	followers, code, err := client.GetFollowers(username, count, start)
+	if err != nil {
+		log.Printf("Error while getting followers: %s\n", err.Error())
+		c.JSON(code, gin.H{"message": "error while getting followers", "error": err.Error()})
+		return
+	}
+
+	if len(followers) == 0 {
+		c.JSON(http.StatusOK, gin.H{})
+		return
+	} else {
+		c.JSON(http.StatusOK, followers)
+	}
+}
+
 func SetupRoutes(r *gin.Engine) {
 	r.GET("/hello_world", helloWorld)
 	r.POST("/register", register)
@@ -643,4 +687,5 @@ func SetupRoutes(r *gin.Engine) {
 	r.POST("/moderation/ban_user", banUser)
 	r.POST("/moderation/pardon_user", pardonUser)
 	r.POST("/oauth/login", oauthLogin)
+	r.GET("/get_followers/:user", getFollowers)
 }
